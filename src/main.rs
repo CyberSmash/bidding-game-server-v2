@@ -17,12 +17,17 @@ use std::{
     collections::hash_map::{HashMap, Entry},
     sync::Arc,
 };
+use std::fmt::Formatter;
 use std::io::{BufWriter, ErrorKind};
 use std::num::ParseIntError;
 //use std::net::TcpStream;
 use std::time::Duration;
+use protobuf::Message;
 use crate::mpsc::SendError;
+mod protos;
 
+use protos::Comms;
+use protos::Comms::server_request;
 type Sender<T> = mpsc::UnboundedSender<T>;
 type Receiver<T> = mpsc::UnboundedReceiver<T>;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
@@ -41,9 +46,9 @@ enum GameStatus {
     Disconnect,
 }
 
-enum Error {
+mod error;
 
-}
+use error::BidError;
 
 enum Event {
     NewPlayer {
@@ -99,6 +104,7 @@ struct GMPlayer {
     stream: TcpStream,
 }
 
+
 fn get_player_info_for_game(players: &mut HashMap<String, Player>, player_name: &String) -> Option<GMPlayer> {
     return match players.entry(player_name.clone())
     {
@@ -145,10 +151,27 @@ async fn send_to_client(msg: &str, stream: &mut TcpStream)
 
 }
 
+
+async fn send_proto_to_client(stream: &mut TcpStream, msg: &Comms::ServerRequest) -> Result<()> {
+    let final_msg =  msg.write_length_delimited_to_bytes().map_err(|_| BidError::ErrorProtobufEncoding)?;
+    stream.write_all(final_msg.as_slice()).await.map_err(|_| BidError::ErrorOnSend)?;
+    Ok(())
+
+}
+
 async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> Option<u32> {
     let mut error_count = 0;
     while error_count < 3 {
-        send_to_client("bid\n", stream).await;
+        let mut msg = Comms::ServerRequest::new();
+        msg.set_msgType(Comms::server_request::MsgType::BID_REQUEST);
+        //send_to_client("bid\n", stream).await;
+        match send_proto_to_client(stream, &msg).await {
+            Ok(_) => {}
+            Err(e) => {
+                println!("Error sending bid.");
+                return None;
+            }
+        }
         let client_response = match async_std::io::timeout(SOCKET_READ_TIMEOUT, read_from_client(stream)).await {
             Ok(response_str) => { response_str }
             Err(_) => {
@@ -168,7 +191,10 @@ async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> 
                 continue;
             }
          };
-        if bid_num > player_money_left {
+
+        // You can't bid more than you have, and you cannot bid 0 unless you only
+        // have 0 to bid.
+        if (bid_num > player_money_left) || (bid_num == 0 && player_money_left > 0) {
             error_count += 1;
             send_to_client("badbid\n", stream).await;
             continue;
@@ -187,7 +213,7 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
     let mut player_a_money_left = 100;
     let mut player_b_money_left = 100;
     let mut bottle_position: i32 = 0;
-
+    let mut draw_advantage = true;
     let gr_a_abandoned = GameResult {
         id: id,
         winner: name_b.clone(),
@@ -202,9 +228,9 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
     };
     let mut gr = GameResult {
         id: id,
-        winner: "".to_string(),
-        loser: "".to_string(),
-        status: GameStatus::Abandoned
+        winner: name_a.clone(),
+        loser: name_b.clone(),
+        status: GameStatus::Draw,
     };
     let start_msg = format!("start {}/{} {}/{}\n", name_a, player_a_money_left, name_b, player_b_money_left);
     stream_a.write_all(start_msg.as_bytes()).await;
@@ -264,17 +290,26 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
             }
         };
 
-        let bid_result = format!("result {}/{}\n", bid_a, bid_b);
-
         if bid_a > bid_b {
             player_a_money_left -= bid_a;
             bottle_position += 1;
 
         }
-        if bid_a < bid_b {
+        else if bid_a < bid_b {
             player_b_money_left -= bid_b;
             bottle_position -= 1;
         }
+        else {
+            if draw_advantage {
+                bottle_position += 1;
+            }
+            else {
+                bottle_position -= 1;
+            }
+            draw_advantage = !draw_advantage;
+        }
+
+        let bid_result = format!("result {}/{}\n", bid_a, bid_b);
 
         match stream_a.write_all(bid_result.as_bytes()).await {
             Ok(_) => {}
@@ -282,6 +317,7 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
                 return gr_a_abandoned;
             }
         }
+
         match stream_b.write_all(bid_result.as_bytes()).await {
             Ok(_) => {}
             Err(_) => {
@@ -292,7 +328,7 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
 
     } // end for-loop
 
-
+    println!("The game has finished and we are returning the result.");
     gr
 }
 
@@ -425,7 +461,20 @@ async fn player_manager(mut sender: Sender<Event>, mut receiver: Receiver<Event>
             Event::GameOver {
                 result
             } => {
-                println!("Game {} has finished, with {} winner and {} loser", result.id, result.winner, result.loser );
+                match result.status {
+                    GameStatus::Abandoned => {
+                        println!("The game had to be abandoned due to {}", result.loser);
+                    }
+                    GameStatus::Completed => {
+                        println!("The game completed with {} as the winner, and {} as the loser",
+                                 result.winner,
+                                 result.loser)
+                    }
+                    GameStatus::Draw => {
+
+                    }
+                    GameStatus::Disconnect => {}
+                }
                 if let Some(peer) = players.get_mut(&result.winner) {
                     peer.in_game = false;
                     peer.wins += 1;
