@@ -17,6 +17,7 @@ use std::{
     collections::hash_map::{HashMap, Entry},
     sync::Arc,
 };
+use std::error::Error;
 use std::fmt::Formatter;
 use std::io::{BufWriter, ErrorKind};
 use std::num::ParseIntError;
@@ -49,6 +50,8 @@ enum GameStatus {
 mod error;
 
 use error::BidError;
+use crate::Comms::ServerRequest;
+use crate::server_request::MsgType;
 
 enum Event {
     NewPlayer {
@@ -104,6 +107,7 @@ struct GMPlayer {
     stream: TcpStream,
 }
 
+type SomeResult<T> = std::result::Result<T, BidError>;
 
 fn get_player_info_for_game(players: &mut HashMap<String, Player>, player_name: &String) -> Option<GMPlayer> {
     return match players.entry(player_name.clone())
@@ -152,11 +156,68 @@ async fn send_to_client(msg: &str, stream: &mut TcpStream)
 }
 
 
-async fn send_proto_to_client(stream: &mut TcpStream, msg: &Comms::ServerRequest) -> Result<()> {
+async fn send_proto_to_client(stream: &mut TcpStream, msg: &Comms::ServerRequest) -> std::result::Result<(), BidError> {
     let final_msg =  msg.write_length_delimited_to_bytes().map_err(|_| BidError::ErrorProtobufEncoding)?;
     stream.write_all(final_msg.as_slice()).await.map_err(|_| BidError::ErrorOnSend)?;
     Ok(())
 
+}
+
+async fn read_varint_from_stream(mut stream: &TcpStream) -> std::result::Result<i32, BidError> {
+    let mut result: i32 = 0;
+    let mut shift = 0;
+    let mut buffer = vec![0u8; 1];
+    loop {
+        stream.read_exact(&mut buffer).await.map_err(|_| BidError::ErrorOnRead)?;
+        result |= ((buffer[0] & 0x7F) << shift) as i32;
+        shift += 7;
+
+        if !(buffer[0] & 0x80 > 0) {
+            break;
+        }
+    }
+    Ok(result)
+}
+
+
+async fn read_server_request(mut stream: &TcpStream) -> std::result::Result<Comms::ServerRequest, BidError> {
+    // Get the size of the data first.
+    let mut num_bytes = match read_varint_from_stream(stream).await {
+        Ok(bytes) => {bytes}
+        Err(e) => {
+            return match e {
+                BidError::ErrorOnRead => {
+                    println!("Error: Could not read size of protobuf.");
+                    Err(e)
+                }
+                _ => {
+                    println!("Unexpected Error: {}", e.to_string());
+                    Err(e)
+                }
+            };
+        }
+
+    };
+
+    if num_bytes <= 0 {
+        return Err(BidError::ErrorOnRead);
+    }
+
+    println!("Expecting message of size {}", num_bytes);
+    let mut raw_data = vec![0u8; num_bytes as usize];
+
+
+    // Read in the bytes from the stream
+    stream.read_exact(&mut raw_data).await.map_err(|_| BidError::ErrorOnRead);
+
+    println!("Message received.");
+
+    let server_request =  Comms::ServerRequest::parse_from_bytes(raw_data.as_slice()).map_err(|_| BidError::ProtoParseError)?;
+
+    println!("Returning server request");
+
+
+    Ok(server_request)
 }
 
 async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> Option<u32> {
@@ -232,7 +293,12 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
         loser: name_b.clone(),
         status: GameStatus::Draw,
     };
-    let start_msg = format!("start {}/{} {}/{}\n", name_a, player_a_money_left, name_b, player_b_money_left);
+    //let start_msg = format!("start {}/{} {}/{}\n", name_a, player_a_money_left, name_b, player_b_money_left);
+    let mut start_msg = ServerRequest::new();
+    start_msg.set_msgType(MsgType::GAME_START);
+
+    // @TODO Send protobuf.
+
     stream_a.write_all(start_msg.as_bytes()).await;
     stream_b.write_all(start_msg.as_bytes()).await;
 
@@ -507,20 +573,48 @@ async fn player_manager(mut sender: Sender<Event>, mut receiver: Receiver<Event>
 
 }
 
-async fn connection_loop(mut stream: TcpStream, mut pm_sender: Sender<Event>) -> Result<()>
+async fn connection_loop(mut stream: TcpStream, mut pm_sender: Sender<Event>) -> std::result::Result<(), BidError>
 {
-    let reader = BufReader::new(stream.clone());
+    //let reader = BufReader::new(stream.clone());
     //let  writer = BufWriter::new(&stream);
-    let mut lines = reader.lines();
-    let login_msg = "login\n";
-    send_to_client(login_msg, &mut stream).await;
+    //let mut lines = reader.lines();
+    //let login_msg = "login\n";
+    let mut auth_request = Comms::ServerRequest::new();
+    auth_request.set_msgType(Comms::server_request::MsgType::AUTH_REQUEST);
 
+    match send_proto_to_client(&mut stream, &auth_request).await {
+        Ok(_) => {}
+        Err(e) => {println!("Error: {}", e)}
+    }
+
+    //send_to_client(login_msg, &mut stream).await;
+
+    /*
     let name = match lines.next().await {
         None => Err("Peer disconnected.")?,
         Some(line) => line?,
     };
+    */
+    let login_name = match read_server_request(&mut stream).await {
+        Ok(resp) => {resp}
+        Err(e) => {
+            println!("Error: {}", e);
+            return Err(e);
+        }
+    };
 
-    send_to_client("ok\n", &mut stream).await;
+    let name = match login_name.msgType() {
+        MsgType::AUTH_RESPONSE => {login_name.authResponse.player_name().to_string()}
+        _ => {
+            println!("Invalid response received.");
+            String::new()
+        }
+    };
+
+    //send_to_client("ok\n", &mut stream).await;
+    let mut ack = ServerRequest::new();
+    ack.set_msgType(Comms::server_request::MsgType::ACK);
+    send_proto_to_client(&mut stream, &ack).await;
     //stream.write_all(name.as_bytes()).await;
 
     let p = Player {
@@ -530,7 +624,7 @@ async fn connection_loop(mut stream: TcpStream, mut pm_sender: Sender<Event>) ->
         in_game: false,
         stream
     };
-    pm_sender.send(Event::NewPlayer {player: p}).await?;
+    pm_sender.send(Event::NewPlayer {player: p}).await;
 
 
     Ok(())
