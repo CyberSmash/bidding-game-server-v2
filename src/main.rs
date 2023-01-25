@@ -310,23 +310,20 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
     };
     //let start_msg = format!("start {}/{} {}/{}\n", name_a, player_a_money_left, name_b, player_b_money_left);
     let mut start_msg = ServerRequest::new();
-    start_msg.set_msgType(Comms::server_request::MsgType::ACK);
+    start_msg.set_msgType(Comms::server_request::MsgType::GAME_START);
 
-    //let mut gs = Comms::GameStart::new();
+    let mut gs = Comms::GameStart::new();
     //start_msg.
 
-    //gs.set_player1_name(name_a.clone());
-    //gs.set_player2_name(name_b.clone());
-    //gs.set_player1_start_money(100);
-    //gs.set_player2_start_money(100);
-    //start_msg.gameStart = MessageField::some(gs);
-    //start_msg.gameStart.set_player1_start_money()
+    gs.set_player1_name(name_a.clone());
+    gs.set_player2_name(name_b.clone());
+    gs.set_player1_start_money(100);
+    gs.set_player2_start_money(100);
+    start_msg.gameStart = MessageField::some(gs);
 
-    // @TODO Send protobuf.
     send_proto_to_client(stream_a, &start_msg).await;
     send_proto_to_client(stream_b, &start_msg).await;
-    //stream_a.write_all(start_msg.as_bytes()).await;
-    //stream_b.write_all(start_msg.as_bytes()).await;
+
 
     for round in 0..MAX_GAME_ROUNDS {
 
