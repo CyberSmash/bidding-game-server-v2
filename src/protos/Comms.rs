@@ -45,6 +45,8 @@ pub struct ServerRequest {
     pub bidReject: ::protobuf::MessageField<BidReject>,
     // @@protoc_insertion_point(field:ServerRequest.authReject)
     pub authReject: ::protobuf::MessageField<AuthReject>,
+    // @@protoc_insertion_point(field:ServerRequest.gameStart)
+    pub gameStart: ::protobuf::MessageField<GameStart>,
     // special fields
     // @@protoc_insertion_point(special_field:ServerRequest.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
@@ -84,7 +86,7 @@ impl ServerRequest {
     }
 
     fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
-        let mut fields = ::std::vec::Vec::with_capacity(7);
+        let mut fields = ::std::vec::Vec::with_capacity(8);
         let mut oneofs = ::std::vec::Vec::with_capacity(0);
         fields.push(::protobuf::reflect::rt::v2::make_option_accessor::<_, _>(
             "msgType",
@@ -120,6 +122,11 @@ impl ServerRequest {
             "authReject",
             |m: &ServerRequest| { &m.authReject },
             |m: &mut ServerRequest| { &mut m.authReject },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, GameStart>(
+            "gameStart",
+            |m: &ServerRequest| { &m.gameStart },
+            |m: &mut ServerRequest| { &mut m.gameStart },
         ));
         ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<ServerRequest>(
             "ServerRequest",
@@ -166,6 +173,11 @@ impl ::protobuf::Message for ServerRequest {
                 return false;
             }
         };
+        for v in &self.gameStart {
+            if !v.is_initialized() {
+                return false;
+            }
+        };
         true
     }
 
@@ -192,6 +204,9 @@ impl ::protobuf::Message for ServerRequest {
                 },
                 58 => {
                     ::protobuf::rt::read_singular_message_into_field(is, &mut self.authReject)?;
+                },
+                66 => {
+                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.gameStart)?;
                 },
                 tag => {
                     ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
@@ -232,6 +247,10 @@ impl ::protobuf::Message for ServerRequest {
             let len = v.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
         }
+        if let Some(v) = self.gameStart.as_ref() {
+            let len = v.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
+        }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
         self.special_fields.cached_size().set(my_size as u32);
         my_size
@@ -259,6 +278,9 @@ impl ::protobuf::Message for ServerRequest {
         if let Some(v) = self.authReject.as_ref() {
             ::protobuf::rt::write_message_field_with_cached_size(7, v, os)?;
         }
+        if let Some(v) = self.gameStart.as_ref() {
+            ::protobuf::rt::write_message_field_with_cached_size(8, v, os)?;
+        }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
         ::std::result::Result::Ok(())
     }
@@ -283,6 +305,7 @@ impl ::protobuf::Message for ServerRequest {
         self.bidResponse.clear();
         self.bidReject.clear();
         self.authReject.clear();
+        self.gameStart.clear();
         self.special_fields.clear();
     }
 
@@ -295,6 +318,7 @@ impl ::protobuf::Message for ServerRequest {
             bidResponse: ::protobuf::MessageField::none(),
             bidReject: ::protobuf::MessageField::none(),
             authReject: ::protobuf::MessageField::none(),
+            gameStart: ::protobuf::MessageField::none(),
             special_fields: ::protobuf::SpecialFields::new(),
         };
         &instance
@@ -634,6 +658,304 @@ pub mod game_end {
             ::protobuf::reflect::GeneratedEnumDescriptorData::new::<GameResult>("GameEnd.GameResult")
         }
     }
+}
+
+#[derive(PartialEq,Clone,Default,Debug)]
+// @@protoc_insertion_point(message:GameStart)
+pub struct GameStart {
+    // message fields
+    // @@protoc_insertion_point(field:GameStart.player1_name)
+    pub player1_name: ::std::option::Option<::std::string::String>,
+    // @@protoc_insertion_point(field:GameStart.player2_name)
+    pub player2_name: ::std::option::Option<::std::string::String>,
+    // @@protoc_insertion_point(field:GameStart.player1_start_money)
+    pub player1_start_money: ::std::option::Option<u32>,
+    // @@protoc_insertion_point(field:GameStart.player2_start_money)
+    pub player2_start_money: ::std::option::Option<u32>,
+    // special fields
+    // @@protoc_insertion_point(special_field:GameStart.special_fields)
+    pub special_fields: ::protobuf::SpecialFields,
+}
+
+impl<'a> ::std::default::Default for &'a GameStart {
+    fn default() -> &'a GameStart {
+        <GameStart as ::protobuf::Message>::default_instance()
+    }
+}
+
+impl GameStart {
+    pub fn new() -> GameStart {
+        ::std::default::Default::default()
+    }
+
+    // required string player1_name = 1;
+
+    pub fn player1_name(&self) -> &str {
+        match self.player1_name.as_ref() {
+            Some(v) => v,
+            None => "",
+        }
+    }
+
+    pub fn clear_player1_name(&mut self) {
+        self.player1_name = ::std::option::Option::None;
+    }
+
+    pub fn has_player1_name(&self) -> bool {
+        self.player1_name.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_player1_name(&mut self, v: ::std::string::String) {
+        self.player1_name = ::std::option::Option::Some(v);
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_player1_name(&mut self) -> &mut ::std::string::String {
+        if self.player1_name.is_none() {
+            self.player1_name = ::std::option::Option::Some(::std::string::String::new());
+        }
+        self.player1_name.as_mut().unwrap()
+    }
+
+    // Take field
+    pub fn take_player1_name(&mut self) -> ::std::string::String {
+        self.player1_name.take().unwrap_or_else(|| ::std::string::String::new())
+    }
+
+    // required string player2_name = 2;
+
+    pub fn player2_name(&self) -> &str {
+        match self.player2_name.as_ref() {
+            Some(v) => v,
+            None => "",
+        }
+    }
+
+    pub fn clear_player2_name(&mut self) {
+        self.player2_name = ::std::option::Option::None;
+    }
+
+    pub fn has_player2_name(&self) -> bool {
+        self.player2_name.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_player2_name(&mut self, v: ::std::string::String) {
+        self.player2_name = ::std::option::Option::Some(v);
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_player2_name(&mut self) -> &mut ::std::string::String {
+        if self.player2_name.is_none() {
+            self.player2_name = ::std::option::Option::Some(::std::string::String::new());
+        }
+        self.player2_name.as_mut().unwrap()
+    }
+
+    // Take field
+    pub fn take_player2_name(&mut self) -> ::std::string::String {
+        self.player2_name.take().unwrap_or_else(|| ::std::string::String::new())
+    }
+
+    // required uint32 player1_start_money = 3;
+
+    pub fn player1_start_money(&self) -> u32 {
+        self.player1_start_money.unwrap_or(0)
+    }
+
+    pub fn clear_player1_start_money(&mut self) {
+        self.player1_start_money = ::std::option::Option::None;
+    }
+
+    pub fn has_player1_start_money(&self) -> bool {
+        self.player1_start_money.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_player1_start_money(&mut self, v: u32) {
+        self.player1_start_money = ::std::option::Option::Some(v);
+    }
+
+    // required uint32 player2_start_money = 4;
+
+    pub fn player2_start_money(&self) -> u32 {
+        self.player2_start_money.unwrap_or(0)
+    }
+
+    pub fn clear_player2_start_money(&mut self) {
+        self.player2_start_money = ::std::option::Option::None;
+    }
+
+    pub fn has_player2_start_money(&self) -> bool {
+        self.player2_start_money.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_player2_start_money(&mut self, v: u32) {
+        self.player2_start_money = ::std::option::Option::Some(v);
+    }
+
+    fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
+        let mut fields = ::std::vec::Vec::with_capacity(4);
+        let mut oneofs = ::std::vec::Vec::with_capacity(0);
+        fields.push(::protobuf::reflect::rt::v2::make_option_accessor::<_, _>(
+            "player1_name",
+            |m: &GameStart| { &m.player1_name },
+            |m: &mut GameStart| { &mut m.player1_name },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_option_accessor::<_, _>(
+            "player2_name",
+            |m: &GameStart| { &m.player2_name },
+            |m: &mut GameStart| { &mut m.player2_name },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_option_accessor::<_, _>(
+            "player1_start_money",
+            |m: &GameStart| { &m.player1_start_money },
+            |m: &mut GameStart| { &mut m.player1_start_money },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_option_accessor::<_, _>(
+            "player2_start_money",
+            |m: &GameStart| { &m.player2_start_money },
+            |m: &mut GameStart| { &mut m.player2_start_money },
+        ));
+        ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<GameStart>(
+            "GameStart",
+            fields,
+            oneofs,
+        )
+    }
+}
+
+impl ::protobuf::Message for GameStart {
+    const NAME: &'static str = "GameStart";
+
+    fn is_initialized(&self) -> bool {
+        if self.player1_name.is_none() {
+            return false;
+        }
+        if self.player2_name.is_none() {
+            return false;
+        }
+        if self.player1_start_money.is_none() {
+            return false;
+        }
+        if self.player2_start_money.is_none() {
+            return false;
+        }
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
+        while let Some(tag) = is.read_raw_tag_or_eof()? {
+            match tag {
+                10 => {
+                    self.player1_name = ::std::option::Option::Some(is.read_string()?);
+                },
+                18 => {
+                    self.player2_name = ::std::option::Option::Some(is.read_string()?);
+                },
+                24 => {
+                    self.player1_start_money = ::std::option::Option::Some(is.read_uint32()?);
+                },
+                32 => {
+                    self.player2_start_money = ::std::option::Option::Some(is.read_uint32()?);
+                },
+                tag => {
+                    ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u64 {
+        let mut my_size = 0;
+        if let Some(v) = self.player1_name.as_ref() {
+            my_size += ::protobuf::rt::string_size(1, &v);
+        }
+        if let Some(v) = self.player2_name.as_ref() {
+            my_size += ::protobuf::rt::string_size(2, &v);
+        }
+        if let Some(v) = self.player1_start_money {
+            my_size += ::protobuf::rt::uint32_size(3, v);
+        }
+        if let Some(v) = self.player2_start_money {
+            my_size += ::protobuf::rt::uint32_size(4, v);
+        }
+        my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
+        self.special_fields.cached_size().set(my_size as u32);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
+        if let Some(v) = self.player1_name.as_ref() {
+            os.write_string(1, v)?;
+        }
+        if let Some(v) = self.player2_name.as_ref() {
+            os.write_string(2, v)?;
+        }
+        if let Some(v) = self.player1_start_money {
+            os.write_uint32(3, v)?;
+        }
+        if let Some(v) = self.player2_start_money {
+            os.write_uint32(4, v)?;
+        }
+        os.write_unknown_fields(self.special_fields.unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn special_fields(&self) -> &::protobuf::SpecialFields {
+        &self.special_fields
+    }
+
+    fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
+        &mut self.special_fields
+    }
+
+    fn new() -> GameStart {
+        GameStart::new()
+    }
+
+    fn clear(&mut self) {
+        self.player1_name = ::std::option::Option::None;
+        self.player2_name = ::std::option::Option::None;
+        self.player1_start_money = ::std::option::Option::None;
+        self.player2_start_money = ::std::option::Option::None;
+        self.special_fields.clear();
+    }
+
+    fn default_instance() -> &'static GameStart {
+        static instance: GameStart = GameStart {
+            player1_name: ::std::option::Option::None,
+            player2_name: ::std::option::Option::None,
+            player1_start_money: ::std::option::Option::None,
+            player2_start_money: ::std::option::Option::None,
+            special_fields: ::protobuf::SpecialFields::new(),
+        };
+        &instance
+    }
+}
+
+impl ::protobuf::MessageFull for GameStart {
+    fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
+        static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
+        descriptor.get(|| file_descriptor().message_by_package_relative_name("GameStart").unwrap()).clone()
+    }
+}
+
+impl ::std::fmt::Display for GameStart {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for GameStart {
+    type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
 }
 
 #[derive(PartialEq,Clone,Default,Debug)]
@@ -1535,55 +1857,60 @@ impl ::protobuf::reflect::ProtobufValue for AuthReject {
 }
 
 static file_descriptor_proto_data: &'static [u8] = b"\
-    \n\x0bComms.proto\"\x90\x04\n\rServerRequest\x120\n\x07msgType\x18\x01\
+    \n\x0bComms.proto\"\xba\x04\n\rServerRequest\x120\n\x07msgType\x18\x01\
     \x20\x02(\x0e2\x16.ServerRequest.MsgTypeR\x07msgType\x12\"\n\x07gameEnd\
     \x18\x02\x20\x01(\x0b2\x08.GameEndR\x07gameEnd\x12(\n\tgameState\x18\x03\
     \x20\x01(\x0b2\n.GameStateR\tgameState\x121\n\x0cauthResponse\x18\x04\
     \x20\x01(\x0b2\r.AuthResponseR\x0cauthResponse\x12.\n\x0bbidResponse\x18\
     \x05\x20\x01(\x0b2\x0c.BidResponseR\x0bbidResponse\x12(\n\tbidReject\x18\
     \x06\x20\x01(\x0b2\n.BidRejectR\tbidReject\x12+\n\nauthReject\x18\x07\
-    \x20\x01(\x0b2\x0b.AuthRejectR\nauthReject\"\xc4\x01\n\x07MsgType\x12\
-    \x10\n\x0cAUTH_REQUEST\x10\0\x12\x11\n\rAUTH_RESPONSE\x10\x08\x12\x0f\n\
-    \x0bAUTH_REJECT\x10\x01\x12\x0f\n\x0bBID_REQUEST\x10\x02\x12\x10\n\x0cBI\
-    D_RESPONSE\x10\x03\x12\x0e\n\nBID_REJECT\x10\x04\x12\x0e\n\nGAME_START\
-    \x10\x05\x12\x0c\n\x08GAME_END\x10\x06\x12\x0e\n\nDISCONNECT\x10\x07\x12\
-    \x07\n\x03ACK\x10\t\x12\x0e\n\nGAME_ABORT\x10\n\x12\t\n\x05ALIVE\x10\x0b\
-    \"a\n\x07GameEnd\x12+\n\x06result\x18\x01\x20\x02(\x0e2\x13.GameEnd.Game\
-    ResultR\x06result\")\n\nGameResult\x12\x07\n\x03WIN\x10\0\x12\x08\n\x04L\
-    OSS\x10\x01\x12\x08\n\x04DRAW\x10\x02\"\xb6\x01\n\tGameState\x12!\n\x0cp\
-    layer1_bids\x18\x01\x20\x03(\rR\x0bplayer1Bids\x12!\n\x0cplayer2_bids\
-    \x18\x02\x20\x03(\rR\x0bplayer2Bids\x12%\n\x0ecurrent_player\x18\x03\x20\
-    \x02(\rR\rcurrentPlayer\x12\x1d\n\nbottle_pos\x18\x04\x20\x02(\rR\tbottl\
-    ePos\x12\x1d\n\nmoney_left\x18\x05\x20\x02(\rR\tmoneyLeft\"/\n\x0cAuthRe\
-    sponse\x12\x1f\n\x0bplayer_name\x18\x01\x20\x02(\tR\nplayerName\"#\n\x0b\
-    BidResponse\x12\x14\n\x05money\x18\x01\x20\x02(\rR\x05money\"#\n\tBidRej\
-    ect\x12\x16\n\x06reason\x18\x01\x20\x02(\tR\x06reason\"$\n\nAuthReject\
-    \x12\x16\n\x06reason\x18\x01\x20\x02(\tR\x06reasonJ\x88\x12\n\x06\x12\
-    \x04\0\0R\x01\n\x08\n\x01\x0c\x12\x03\0\0\x12\n\n\n\x02\x04\0\x12\x04\
-    \x02\0%\x01\n\n\n\x03\x04\0\x01\x12\x03\x02\x08\x15\n\x0c\n\x04\x04\0\
-    \x04\0\x12\x04\x03\x02\x16\x03\n\x0c\n\x05\x04\0\x04\0\x01\x12\x03\x03\
-    \x07\x0e\n\r\n\x06\x04\0\x04\0\x02\0\x12\x03\x04\x04\x15\n\x0e\n\x07\x04\
-    \0\x04\0\x02\0\x01\x12\x03\x04\x04\x10\n\x0e\n\x07\x04\0\x04\0\x02\0\x02\
-    \x12\x03\x04\x13\x14\n\r\n\x06\x04\0\x04\0\x02\x01\x12\x03\x05\x04\x16\n\
-    \x0e\n\x07\x04\0\x04\0\x02\x01\x01\x12\x03\x05\x04\x11\n\x0e\n\x07\x04\0\
-    \x04\0\x02\x01\x02\x12\x03\x05\x14\x15\n\r\n\x06\x04\0\x04\0\x02\x02\x12\
-    \x03\x06\x04\x14\n\x0e\n\x07\x04\0\x04\0\x02\x02\x01\x12\x03\x06\x04\x0f\
-    \n\x0e\n\x07\x04\0\x04\0\x02\x02\x02\x12\x03\x06\x12\x13\n\r\n\x06\x04\0\
-    \x04\0\x02\x03\x12\x03\x08\x04\x14\n\x0e\n\x07\x04\0\x04\0\x02\x03\x01\
-    \x12\x03\x08\x04\x0f\n\x0e\n\x07\x04\0\x04\0\x02\x03\x02\x12\x03\x08\x12\
-    \x13\n\r\n\x06\x04\0\x04\0\x02\x04\x12\x03\t\x04\x15\n\x0e\n\x07\x04\0\
-    \x04\0\x02\x04\x01\x12\x03\t\x04\x10\n\x0e\n\x07\x04\0\x04\0\x02\x04\x02\
-    \x12\x03\t\x13\x14\n\r\n\x06\x04\0\x04\0\x02\x05\x12\x03\n\x04\x13\n\x0e\
-    \n\x07\x04\0\x04\0\x02\x05\x01\x12\x03\n\x04\x0e\n\x0e\n\x07\x04\0\x04\0\
-    \x02\x05\x02\x12\x03\n\x11\x12\n\r\n\x06\x04\0\x04\0\x02\x06\x12\x03\x0c\
-    \x04\x13\n\x0e\n\x07\x04\0\x04\0\x02\x06\x01\x12\x03\x0c\x04\x0e\n\x0e\n\
-    \x07\x04\0\x04\0\x02\x06\x02\x12\x03\x0c\x11\x12\n\r\n\x06\x04\0\x04\0\
-    \x02\x07\x12\x03\r\x04\x11\n\x0e\n\x07\x04\0\x04\0\x02\x07\x01\x12\x03\r\
-    \x04\x0c\n\x0e\n\x07\x04\0\x04\0\x02\x07\x02\x12\x03\r\x0f\x10\n\r\n\x06\
-    \x04\0\x04\0\x02\x08\x12\x03\x0f\x04\x13\n\x0e\n\x07\x04\0\x04\0\x02\x08\
-    \x01\x12\x03\x0f\x04\x0e\n\x0e\n\x07\x04\0\x04\0\x02\x08\x02\x12\x03\x0f\
-    \x11\x12\n\r\n\x06\x04\0\x04\0\x02\t\x12\x03\x11\x04\x0c\n\x0e\n\x07\x04\
-    \0\x04\0\x02\t\x01\x12\x03\x11\x04\x07\n\x0e\n\x07\x04\0\x04\0\x02\t\x02\
+    \x20\x01(\x0b2\x0b.AuthRejectR\nauthReject\x12(\n\tgameStart\x18\x08\x20\
+    \x01(\x0b2\n.GameStartR\tgameStart\"\xc4\x01\n\x07MsgType\x12\x10\n\x0cA\
+    UTH_REQUEST\x10\0\x12\x11\n\rAUTH_RESPONSE\x10\x08\x12\x0f\n\x0bAUTH_REJ\
+    ECT\x10\x01\x12\x0f\n\x0bBID_REQUEST\x10\x02\x12\x10\n\x0cBID_RESPONSE\
+    \x10\x03\x12\x0e\n\nBID_REJECT\x10\x04\x12\x0e\n\nGAME_START\x10\x05\x12\
+    \x0c\n\x08GAME_END\x10\x06\x12\x0e\n\nDISCONNECT\x10\x07\x12\x07\n\x03AC\
+    K\x10\t\x12\x0e\n\nGAME_ABORT\x10\n\x12\t\n\x05ALIVE\x10\x0b\"a\n\x07Gam\
+    eEnd\x12+\n\x06result\x18\x01\x20\x02(\x0e2\x13.GameEnd.GameResultR\x06r\
+    esult\")\n\nGameResult\x12\x07\n\x03WIN\x10\0\x12\x08\n\x04LOSS\x10\x01\
+    \x12\x08\n\x04DRAW\x10\x02\"\xb1\x01\n\tGameStart\x12!\n\x0cplayer1_name\
+    \x18\x01\x20\x02(\tR\x0bplayer1Name\x12!\n\x0cplayer2_name\x18\x02\x20\
+    \x02(\tR\x0bplayer2Name\x12.\n\x13player1_start_money\x18\x03\x20\x02(\r\
+    R\x11player1StartMoney\x12.\n\x13player2_start_money\x18\x04\x20\x02(\rR\
+    \x11player2StartMoney\"\xb6\x01\n\tGameState\x12!\n\x0cplayer1_bids\x18\
+    \x01\x20\x03(\rR\x0bplayer1Bids\x12!\n\x0cplayer2_bids\x18\x02\x20\x03(\
+    \rR\x0bplayer2Bids\x12%\n\x0ecurrent_player\x18\x03\x20\x02(\rR\rcurrent\
+    Player\x12\x1d\n\nbottle_pos\x18\x04\x20\x02(\rR\tbottlePos\x12\x1d\n\nm\
+    oney_left\x18\x05\x20\x02(\rR\tmoneyLeft\"/\n\x0cAuthResponse\x12\x1f\n\
+    \x0bplayer_name\x18\x01\x20\x02(\tR\nplayerName\"#\n\x0bBidResponse\x12\
+    \x14\n\x05money\x18\x01\x20\x02(\rR\x05money\"#\n\tBidReject\x12\x16\n\
+    \x06reason\x18\x01\x20\x02(\tR\x06reason\"$\n\nAuthReject\x12\x16\n\x06r\
+    eason\x18\x01\x20\x02(\tR\x06reasonJ\xf9\x14\n\x06\x12\x04\0\0\\\x01\n\
+    \x08\n\x01\x0c\x12\x03\0\0\x12\n\n\n\x02\x04\0\x12\x04\x02\0(\x01\n\n\n\
+    \x03\x04\0\x01\x12\x03\x02\x08\x15\n\x0c\n\x04\x04\0\x04\0\x12\x04\x03\
+    \x02\x16\x03\n\x0c\n\x05\x04\0\x04\0\x01\x12\x03\x03\x07\x0e\n\r\n\x06\
+    \x04\0\x04\0\x02\0\x12\x03\x04\x04\x15\n\x0e\n\x07\x04\0\x04\0\x02\0\x01\
+    \x12\x03\x04\x04\x10\n\x0e\n\x07\x04\0\x04\0\x02\0\x02\x12\x03\x04\x13\
+    \x14\n\r\n\x06\x04\0\x04\0\x02\x01\x12\x03\x05\x04\x16\n\x0e\n\x07\x04\0\
+    \x04\0\x02\x01\x01\x12\x03\x05\x04\x11\n\x0e\n\x07\x04\0\x04\0\x02\x01\
+    \x02\x12\x03\x05\x14\x15\n\r\n\x06\x04\0\x04\0\x02\x02\x12\x03\x06\x04\
+    \x14\n\x0e\n\x07\x04\0\x04\0\x02\x02\x01\x12\x03\x06\x04\x0f\n\x0e\n\x07\
+    \x04\0\x04\0\x02\x02\x02\x12\x03\x06\x12\x13\n\r\n\x06\x04\0\x04\0\x02\
+    \x03\x12\x03\x08\x04\x14\n\x0e\n\x07\x04\0\x04\0\x02\x03\x01\x12\x03\x08\
+    \x04\x0f\n\x0e\n\x07\x04\0\x04\0\x02\x03\x02\x12\x03\x08\x12\x13\n\r\n\
+    \x06\x04\0\x04\0\x02\x04\x12\x03\t\x04\x15\n\x0e\n\x07\x04\0\x04\0\x02\
+    \x04\x01\x12\x03\t\x04\x10\n\x0e\n\x07\x04\0\x04\0\x02\x04\x02\x12\x03\t\
+    \x13\x14\n\r\n\x06\x04\0\x04\0\x02\x05\x12\x03\n\x04\x13\n\x0e\n\x07\x04\
+    \0\x04\0\x02\x05\x01\x12\x03\n\x04\x0e\n\x0e\n\x07\x04\0\x04\0\x02\x05\
+    \x02\x12\x03\n\x11\x12\n\r\n\x06\x04\0\x04\0\x02\x06\x12\x03\x0c\x04\x13\
+    \n\x0e\n\x07\x04\0\x04\0\x02\x06\x01\x12\x03\x0c\x04\x0e\n\x0e\n\x07\x04\
+    \0\x04\0\x02\x06\x02\x12\x03\x0c\x11\x12\n\r\n\x06\x04\0\x04\0\x02\x07\
+    \x12\x03\r\x04\x11\n\x0e\n\x07\x04\0\x04\0\x02\x07\x01\x12\x03\r\x04\x0c\
+    \n\x0e\n\x07\x04\0\x04\0\x02\x07\x02\x12\x03\r\x0f\x10\n\r\n\x06\x04\0\
+    \x04\0\x02\x08\x12\x03\x0f\x04\x13\n\x0e\n\x07\x04\0\x04\0\x02\x08\x01\
+    \x12\x03\x0f\x04\x0e\n\x0e\n\x07\x04\0\x04\0\x02\x08\x02\x12\x03\x0f\x11\
+    \x12\n\r\n\x06\x04\0\x04\0\x02\t\x12\x03\x11\x04\x0c\n\x0e\n\x07\x04\0\
+    \x04\0\x02\t\x01\x12\x03\x11\x04\x07\n\x0e\n\x07\x04\0\x04\0\x02\t\x02\
     \x12\x03\x11\n\x0b\n\r\n\x06\x04\0\x04\0\x02\n\x12\x03\x13\x04\x14\n\x0e\
     \n\x07\x04\0\x04\0\x02\n\x01\x12\x03\x13\x04\x0e\n\x0e\n\x07\x04\0\x04\0\
     \x02\n\x02\x12\x03\x13\x11\x13\n\r\n\x06\x04\0\x04\0\x02\x0b\x12\x03\x14\
@@ -1613,56 +1940,73 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     \x04\x04\0\x02\x06\x12\x03$\x02%\n\x0c\n\x05\x04\0\x02\x06\x04\x12\x03$\
     \x02\n\n\x0c\n\x05\x04\0\x02\x06\x06\x12\x03$\x0b\x15\n\x0c\n\x05\x04\0\
     \x02\x06\x01\x12\x03$\x16\x20\n\x0c\n\x05\x04\0\x02\x06\x03\x12\x03$#$\n\
-    \n\n\x02\x04\x01\x12\x04'\0/\x01\n\n\n\x03\x04\x01\x01\x12\x03'\x08\x0f\
-    \n\x0c\n\x04\x04\x01\x04\0\x12\x04(\x02,\x03\n\x0c\n\x05\x04\x01\x04\0\
-    \x01\x12\x03(\x07\x11\n\r\n\x06\x04\x01\x04\0\x02\0\x12\x03)\x04\x0c\n\
-    \x0e\n\x07\x04\x01\x04\0\x02\0\x01\x12\x03)\x04\x07\n\x0e\n\x07\x04\x01\
-    \x04\0\x02\0\x02\x12\x03)\n\x0b\n\r\n\x06\x04\x01\x04\0\x02\x01\x12\x03*\
-    \x04\r\n\x0e\n\x07\x04\x01\x04\0\x02\x01\x01\x12\x03*\x04\x08\n\x0e\n\
-    \x07\x04\x01\x04\0\x02\x01\x02\x12\x03*\x0b\x0c\n\r\n\x06\x04\x01\x04\0\
-    \x02\x02\x12\x03+\x04\r\n\x0e\n\x07\x04\x01\x04\0\x02\x02\x01\x12\x03+\
-    \x04\x08\n\x0e\n\x07\x04\x01\x04\0\x02\x02\x02\x12\x03+\x0b\x0c\n\x0b\n\
-    \x04\x04\x01\x02\0\x12\x03.\x02!\n\x0c\n\x05\x04\x01\x02\0\x04\x12\x03.\
-    \x02\n\n\x0c\n\x05\x04\x01\x02\0\x06\x12\x03.\x0b\x15\n\x0c\n\x05\x04\
-    \x01\x02\0\x01\x12\x03.\x16\x1c\n\x0c\n\x05\x04\x01\x02\0\x03\x12\x03.\
-    \x1f\x20\n\n\n\x02\x04\x02\x12\x041\0B\x01\n\n\n\x03\x04\x02\x01\x12\x03\
-    1\x08\x11\n\x1d\n\x04\x04\x02\x02\0\x12\x034\x02#\x1a\x10\x20player1's\
-    \x20bids\n\n\x0c\n\x05\x04\x02\x02\0\x04\x12\x034\x02\n\n\x0c\n\x05\x04\
-    \x02\x02\0\x05\x12\x034\x0b\x11\n\x0c\n\x05\x04\x02\x02\0\x01\x12\x034\
-    \x12\x1e\n\x0c\n\x05\x04\x02\x02\0\x03\x12\x034!\"\n\x1e\n\x04\x04\x02\
-    \x02\x01\x12\x037\x02#\x1a\x11\x20player2's\x20bids.\n\n\x0c\n\x05\x04\
-    \x02\x02\x01\x04\x12\x037\x02\n\n\x0c\n\x05\x04\x02\x02\x01\x05\x12\x037\
-    \x0b\x11\n\x0c\n\x05\x04\x02\x02\x01\x01\x12\x037\x12\x1e\n\x0c\n\x05\
-    \x04\x02\x02\x01\x03\x12\x037!\"\n*\n\x04\x04\x02\x02\x02\x12\x03:\x02%\
+    \x0b\n\x04\x04\0\x02\x07\x12\x03&\x02#\n\x0c\n\x05\x04\0\x02\x07\x04\x12\
+    \x03&\x02\n\n\x0c\n\x05\x04\0\x02\x07\x06\x12\x03&\x0b\x14\n\x0c\n\x05\
+    \x04\0\x02\x07\x01\x12\x03&\x15\x1e\n\x0c\n\x05\x04\0\x02\x07\x03\x12\
+    \x03&!\"\n\n\n\x02\x04\x01\x12\x04*\02\x01\n\n\n\x03\x04\x01\x01\x12\x03\
+    *\x08\x0f\n\x0c\n\x04\x04\x01\x04\0\x12\x04+\x02/\x03\n\x0c\n\x05\x04\
+    \x01\x04\0\x01\x12\x03+\x07\x11\n\r\n\x06\x04\x01\x04\0\x02\0\x12\x03,\
+    \x04\x0c\n\x0e\n\x07\x04\x01\x04\0\x02\0\x01\x12\x03,\x04\x07\n\x0e\n\
+    \x07\x04\x01\x04\0\x02\0\x02\x12\x03,\n\x0b\n\r\n\x06\x04\x01\x04\0\x02\
+    \x01\x12\x03-\x04\r\n\x0e\n\x07\x04\x01\x04\0\x02\x01\x01\x12\x03-\x04\
+    \x08\n\x0e\n\x07\x04\x01\x04\0\x02\x01\x02\x12\x03-\x0b\x0c\n\r\n\x06\
+    \x04\x01\x04\0\x02\x02\x12\x03.\x04\r\n\x0e\n\x07\x04\x01\x04\0\x02\x02\
+    \x01\x12\x03.\x04\x08\n\x0e\n\x07\x04\x01\x04\0\x02\x02\x02\x12\x03.\x0b\
+    \x0c\n\x0b\n\x04\x04\x01\x02\0\x12\x031\x02!\n\x0c\n\x05\x04\x01\x02\0\
+    \x04\x12\x031\x02\n\n\x0c\n\x05\x04\x01\x02\0\x06\x12\x031\x0b\x15\n\x0c\
+    \n\x05\x04\x01\x02\0\x01\x12\x031\x16\x1c\n\x0c\n\x05\x04\x01\x02\0\x03\
+    \x12\x031\x1f\x20\n\n\n\x02\x04\x02\x12\x044\09\x01\n\n\n\x03\x04\x02\
+    \x01\x12\x034\x08\x11\n\x0b\n\x04\x04\x02\x02\0\x12\x035\x02#\n\x0c\n\
+    \x05\x04\x02\x02\0\x04\x12\x035\x02\n\n\x0c\n\x05\x04\x02\x02\0\x05\x12\
+    \x035\x0b\x11\n\x0c\n\x05\x04\x02\x02\0\x01\x12\x035\x12\x1e\n\x0c\n\x05\
+    \x04\x02\x02\0\x03\x12\x035!\"\n\x0b\n\x04\x04\x02\x02\x01\x12\x036\x02#\
+    \n\x0c\n\x05\x04\x02\x02\x01\x04\x12\x036\x02\n\n\x0c\n\x05\x04\x02\x02\
+    \x01\x05\x12\x036\x0b\x11\n\x0c\n\x05\x04\x02\x02\x01\x01\x12\x036\x12\
+    \x1e\n\x0c\n\x05\x04\x02\x02\x01\x03\x12\x036!\"\n\x0b\n\x04\x04\x02\x02\
+    \x02\x12\x037\x02*\n\x0c\n\x05\x04\x02\x02\x02\x04\x12\x037\x02\n\n\x0c\
+    \n\x05\x04\x02\x02\x02\x05\x12\x037\x0b\x11\n\x0c\n\x05\x04\x02\x02\x02\
+    \x01\x12\x037\x12%\n\x0c\n\x05\x04\x02\x02\x02\x03\x12\x037()\n\x0b\n\
+    \x04\x04\x02\x02\x03\x12\x038\x02*\n\x0c\n\x05\x04\x02\x02\x03\x04\x12\
+    \x038\x02\n\n\x0c\n\x05\x04\x02\x02\x03\x05\x12\x038\x0b\x11\n\x0c\n\x05\
+    \x04\x02\x02\x03\x01\x12\x038\x12%\n\x0c\n\x05\x04\x02\x02\x03\x03\x12\
+    \x038()\n\n\n\x02\x04\x03\x12\x04;\0L\x01\n\n\n\x03\x04\x03\x01\x12\x03;\
+    \x08\x11\n\x1d\n\x04\x04\x03\x02\0\x12\x03>\x02#\x1a\x10\x20player1's\
+    \x20bids\n\n\x0c\n\x05\x04\x03\x02\0\x04\x12\x03>\x02\n\n\x0c\n\x05\x04\
+    \x03\x02\0\x05\x12\x03>\x0b\x11\n\x0c\n\x05\x04\x03\x02\0\x01\x12\x03>\
+    \x12\x1e\n\x0c\n\x05\x04\x03\x02\0\x03\x12\x03>!\"\n\x1e\n\x04\x04\x03\
+    \x02\x01\x12\x03A\x02#\x1a\x11\x20player2's\x20bids.\n\n\x0c\n\x05\x04\
+    \x03\x02\x01\x04\x12\x03A\x02\n\n\x0c\n\x05\x04\x03\x02\x01\x05\x12\x03A\
+    \x0b\x11\n\x0c\n\x05\x04\x03\x02\x01\x01\x12\x03A\x12\x1e\n\x0c\n\x05\
+    \x04\x03\x02\x01\x03\x12\x03A!\"\n*\n\x04\x04\x03\x02\x02\x12\x03D\x02%\
     \x1a\x1d\x20Who\x20the\x20receiving\x20player\x20is\n\n\x0c\n\x05\x04\
-    \x02\x02\x02\x04\x12\x03:\x02\n\n\x0c\n\x05\x04\x02\x02\x02\x05\x12\x03:\
-    \x0b\x11\n\x0c\n\x05\x04\x02\x02\x02\x01\x12\x03:\x12\x20\n\x0c\n\x05\
-    \x04\x02\x02\x02\x03\x12\x03:#$\n#\n\x04\x04\x02\x02\x03\x12\x03=\x02!\
-    \x1a\x16\x20Where\x20is\x20the\x20bottle?\n\n\x0c\n\x05\x04\x02\x02\x03\
-    \x04\x12\x03=\x02\n\n\x0c\n\x05\x04\x02\x02\x03\x05\x12\x03=\x0b\x11\n\
-    \x0c\n\x05\x04\x02\x02\x03\x01\x12\x03=\x12\x1c\n\x0c\n\x05\x04\x02\x02\
-    \x03\x03\x12\x03=\x1f\x20\n(\n\x04\x04\x02\x02\x04\x12\x03@\x02!\x1a\x1b\
-    \x20Current\x20player\x20money\x20left\n\n\x0c\n\x05\x04\x02\x02\x04\x04\
-    \x12\x03@\x02\n\n\x0c\n\x05\x04\x02\x02\x04\x05\x12\x03@\x0b\x11\n\x0c\n\
-    \x05\x04\x02\x02\x04\x01\x12\x03@\x12\x1c\n\x0c\n\x05\x04\x02\x02\x04\
-    \x03\x12\x03@\x1f\x20\n\n\n\x02\x04\x03\x12\x04D\0F\x01\n\n\n\x03\x04\
-    \x03\x01\x12\x03D\x08\x14\n\x0b\n\x04\x04\x03\x02\0\x12\x03E\x02\"\n\x0c\
-    \n\x05\x04\x03\x02\0\x04\x12\x03E\x02\n\n\x0c\n\x05\x04\x03\x02\0\x05\
-    \x12\x03E\x0b\x11\n\x0c\n\x05\x04\x03\x02\0\x01\x12\x03E\x12\x1d\n\x0c\n\
-    \x05\x04\x03\x02\0\x03\x12\x03E\x20!\n\n\n\x02\x04\x04\x12\x04H\0J\x01\n\
-    \n\n\x03\x04\x04\x01\x12\x03H\x08\x13\n\x0b\n\x04\x04\x04\x02\0\x12\x03I\
-    \x02\x1c\n\x0c\n\x05\x04\x04\x02\0\x04\x12\x03I\x02\n\n\x0c\n\x05\x04\
-    \x04\x02\0\x05\x12\x03I\x0b\x11\n\x0c\n\x05\x04\x04\x02\0\x01\x12\x03I\
-    \x12\x17\n\x0c\n\x05\x04\x04\x02\0\x03\x12\x03I\x1a\x1b\n\n\n\x02\x04\
-    \x05\x12\x04L\0N\x01\n\n\n\x03\x04\x05\x01\x12\x03L\x08\x11\n\x0b\n\x04\
-    \x04\x05\x02\0\x12\x03M\x02\x1d\n\x0c\n\x05\x04\x05\x02\0\x04\x12\x03M\
-    \x02\n\n\x0c\n\x05\x04\x05\x02\0\x05\x12\x03M\x0b\x11\n\x0c\n\x05\x04\
-    \x05\x02\0\x01\x12\x03M\x12\x18\n\x0c\n\x05\x04\x05\x02\0\x03\x12\x03M\
-    \x1b\x1c\n\n\n\x02\x04\x06\x12\x04P\0R\x01\n\n\n\x03\x04\x06\x01\x12\x03\
-    P\x08\x12\n\x0b\n\x04\x04\x06\x02\0\x12\x03Q\x02\x1d\n\x0c\n\x05\x04\x06\
-    \x02\0\x04\x12\x03Q\x02\n\n\x0c\n\x05\x04\x06\x02\0\x05\x12\x03Q\x0b\x11\
-    \n\x0c\n\x05\x04\x06\x02\0\x01\x12\x03Q\x12\x18\n\x0c\n\x05\x04\x06\x02\
-    \0\x03\x12\x03Q\x1b\x1c\
+    \x03\x02\x02\x04\x12\x03D\x02\n\n\x0c\n\x05\x04\x03\x02\x02\x05\x12\x03D\
+    \x0b\x11\n\x0c\n\x05\x04\x03\x02\x02\x01\x12\x03D\x12\x20\n\x0c\n\x05\
+    \x04\x03\x02\x02\x03\x12\x03D#$\n#\n\x04\x04\x03\x02\x03\x12\x03G\x02!\
+    \x1a\x16\x20Where\x20is\x20the\x20bottle?\n\n\x0c\n\x05\x04\x03\x02\x03\
+    \x04\x12\x03G\x02\n\n\x0c\n\x05\x04\x03\x02\x03\x05\x12\x03G\x0b\x11\n\
+    \x0c\n\x05\x04\x03\x02\x03\x01\x12\x03G\x12\x1c\n\x0c\n\x05\x04\x03\x02\
+    \x03\x03\x12\x03G\x1f\x20\n(\n\x04\x04\x03\x02\x04\x12\x03J\x02!\x1a\x1b\
+    \x20Current\x20player\x20money\x20left\n\n\x0c\n\x05\x04\x03\x02\x04\x04\
+    \x12\x03J\x02\n\n\x0c\n\x05\x04\x03\x02\x04\x05\x12\x03J\x0b\x11\n\x0c\n\
+    \x05\x04\x03\x02\x04\x01\x12\x03J\x12\x1c\n\x0c\n\x05\x04\x03\x02\x04\
+    \x03\x12\x03J\x1f\x20\n\n\n\x02\x04\x04\x12\x04N\0P\x01\n\n\n\x03\x04\
+    \x04\x01\x12\x03N\x08\x14\n\x0b\n\x04\x04\x04\x02\0\x12\x03O\x02\"\n\x0c\
+    \n\x05\x04\x04\x02\0\x04\x12\x03O\x02\n\n\x0c\n\x05\x04\x04\x02\0\x05\
+    \x12\x03O\x0b\x11\n\x0c\n\x05\x04\x04\x02\0\x01\x12\x03O\x12\x1d\n\x0c\n\
+    \x05\x04\x04\x02\0\x03\x12\x03O\x20!\n\n\n\x02\x04\x05\x12\x04R\0T\x01\n\
+    \n\n\x03\x04\x05\x01\x12\x03R\x08\x13\n\x0b\n\x04\x04\x05\x02\0\x12\x03S\
+    \x02\x1c\n\x0c\n\x05\x04\x05\x02\0\x04\x12\x03S\x02\n\n\x0c\n\x05\x04\
+    \x05\x02\0\x05\x12\x03S\x0b\x11\n\x0c\n\x05\x04\x05\x02\0\x01\x12\x03S\
+    \x12\x17\n\x0c\n\x05\x04\x05\x02\0\x03\x12\x03S\x1a\x1b\n\n\n\x02\x04\
+    \x06\x12\x04V\0X\x01\n\n\n\x03\x04\x06\x01\x12\x03V\x08\x11\n\x0b\n\x04\
+    \x04\x06\x02\0\x12\x03W\x02\x1d\n\x0c\n\x05\x04\x06\x02\0\x04\x12\x03W\
+    \x02\n\n\x0c\n\x05\x04\x06\x02\0\x05\x12\x03W\x0b\x11\n\x0c\n\x05\x04\
+    \x06\x02\0\x01\x12\x03W\x12\x18\n\x0c\n\x05\x04\x06\x02\0\x03\x12\x03W\
+    \x1b\x1c\n\n\n\x02\x04\x07\x12\x04Z\0\\\x01\n\n\n\x03\x04\x07\x01\x12\
+    \x03Z\x08\x12\n\x0b\n\x04\x04\x07\x02\0\x12\x03[\x02\x1d\n\x0c\n\x05\x04\
+    \x07\x02\0\x04\x12\x03[\x02\n\n\x0c\n\x05\x04\x07\x02\0\x05\x12\x03[\x0b\
+    \x11\n\x0c\n\x05\x04\x07\x02\0\x01\x12\x03[\x12\x18\n\x0c\n\x05\x04\x07\
+    \x02\0\x03\x12\x03[\x1b\x1c\
 ";
 
 /// `FileDescriptorProto` object which was a source for this generated file
@@ -1680,9 +2024,10 @@ pub fn file_descriptor() -> &'static ::protobuf::reflect::FileDescriptor {
     file_descriptor.get(|| {
         let generated_file_descriptor = generated_file_descriptor_lazy.get(|| {
             let mut deps = ::std::vec::Vec::with_capacity(0);
-            let mut messages = ::std::vec::Vec::with_capacity(7);
+            let mut messages = ::std::vec::Vec::with_capacity(8);
             messages.push(ServerRequest::generated_message_descriptor_data());
             messages.push(GameEnd::generated_message_descriptor_data());
+            messages.push(GameStart::generated_message_descriptor_data());
             messages.push(GameState::generated_message_descriptor_data());
             messages.push(AuthResponse::generated_message_descriptor_data());
             messages.push(BidResponse::generated_message_descriptor_data());

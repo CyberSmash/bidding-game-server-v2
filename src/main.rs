@@ -23,12 +23,11 @@ use std::io::{BufWriter, ErrorKind};
 use std::num::ParseIntError;
 //use std::net::TcpStream;
 use std::time::Duration;
-use protobuf::Message;
+use protobuf::{Message, MessageField};
 use crate::mpsc::SendError;
 mod protos;
 
 use protos::Comms;
-use protos::Comms::server_request;
 type Sender<T> = mpsc::UnboundedSender<T>;
 type Receiver<T> = mpsc::UnboundedReceiver<T>;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
@@ -51,7 +50,8 @@ mod error;
 
 use error::BidError;
 use crate::Comms::ServerRequest;
-use crate::server_request::MsgType;
+use crate::protos::Comms::GameStart;
+//use std::alloc::Global;
 
 enum Event {
     NewPlayer {
@@ -157,8 +157,23 @@ async fn send_to_client(msg: &str, stream: &mut TcpStream)
 
 
 async fn send_proto_to_client(stream: &mut TcpStream, msg: &Comms::ServerRequest) -> std::result::Result<(), BidError> {
-    let final_msg =  msg.write_length_delimited_to_bytes().map_err(|_| BidError::ErrorProtobufEncoding)?;
-    stream.write_all(final_msg.as_slice()).await.map_err(|_| BidError::ErrorOnSend)?;
+    let final_msg = match  msg.write_length_delimited_to_bytes().map_err(|_| BidError::ErrorProtobufEncoding) {
+        Ok(m) => {m}
+        Err(e) => {
+            println!("[+] I ran into an error encoding protobuffer.");
+            return Err(e);
+        }
+    };
+
+    match stream.write_all(final_msg.as_slice()).await.map_err(|_| BidError::ErrorOnSend) {
+        Ok(_) => {
+            println!("[+] Sending message of size {} bytes", final_msg.len());
+        }
+        Err(e) => {
+            println!("[-] Error writing all.");
+            return Err(e);
+        }
+    };
     Ok(())
 
 }
@@ -295,12 +310,23 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
     };
     //let start_msg = format!("start {}/{} {}/{}\n", name_a, player_a_money_left, name_b, player_b_money_left);
     let mut start_msg = ServerRequest::new();
-    start_msg.set_msgType(MsgType::GAME_START);
+    start_msg.set_msgType(Comms::server_request::MsgType::ACK);
+
+    //let mut gs = Comms::GameStart::new();
+    //start_msg.
+
+    //gs.set_player1_name(name_a.clone());
+    //gs.set_player2_name(name_b.clone());
+    //gs.set_player1_start_money(100);
+    //gs.set_player2_start_money(100);
+    //start_msg.gameStart = MessageField::some(gs);
+    //start_msg.gameStart.set_player1_start_money()
 
     // @TODO Send protobuf.
-
-    stream_a.write_all(start_msg.as_bytes()).await;
-    stream_b.write_all(start_msg.as_bytes()).await;
+    send_proto_to_client(stream_a, &start_msg).await;
+    send_proto_to_client(stream_b, &start_msg).await;
+    //stream_a.write_all(start_msg.as_bytes()).await;
+    //stream_b.write_all(start_msg.as_bytes()).await;
 
     for round in 0..MAX_GAME_ROUNDS {
 
@@ -487,6 +513,7 @@ async fn handle_need_players(players: &mut HashMap<String, Player>, gm_sender: &
         Some(p) => {p}
     };
 
+    println!("Sending {} and {} to start a game", player_a.name, player_b.name);
     match gm_sender.send(Event::NewGame {
         name_a: player_a.name,
         name_b: player_b.name,
@@ -604,7 +631,7 @@ async fn connection_loop(mut stream: TcpStream, mut pm_sender: Sender<Event>) ->
     };
 
     let name = match login_name.msgType() {
-        MsgType::AUTH_RESPONSE => {login_name.authResponse.player_name().to_string()}
+        Comms::server_request::MsgType::AUTH_RESPONSE => {login_name.authResponse.player_name().to_string()}
         _ => {
             println!("Invalid response received.");
             String::new()
@@ -615,7 +642,6 @@ async fn connection_loop(mut stream: TcpStream, mut pm_sender: Sender<Event>) ->
     let mut ack = ServerRequest::new();
     ack.set_msgType(Comms::server_request::MsgType::ACK);
     send_proto_to_client(&mut stream, &ack).await;
-    //stream.write_all(name.as_bytes()).await;
 
     let p = Player {
         name,
