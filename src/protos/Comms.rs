@@ -43,6 +43,8 @@ pub struct ServerRequest {
     pub bidResponse: ::protobuf::MessageField<BidResponse>,
     // @@protoc_insertion_point(field:ServerRequest.bidReject)
     pub bidReject: ::protobuf::MessageField<BidReject>,
+    // @@protoc_insertion_point(field:ServerRequest.bidResult)
+    pub bidResult: ::protobuf::MessageField<BidResult>,
     // @@protoc_insertion_point(field:ServerRequest.authReject)
     pub authReject: ::protobuf::MessageField<AuthReject>,
     // @@protoc_insertion_point(field:ServerRequest.gameStart)
@@ -86,7 +88,7 @@ impl ServerRequest {
     }
 
     fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
-        let mut fields = ::std::vec::Vec::with_capacity(8);
+        let mut fields = ::std::vec::Vec::with_capacity(9);
         let mut oneofs = ::std::vec::Vec::with_capacity(0);
         fields.push(::protobuf::reflect::rt::v2::make_option_accessor::<_, _>(
             "msgType",
@@ -117,6 +119,11 @@ impl ServerRequest {
             "bidReject",
             |m: &ServerRequest| { &m.bidReject },
             |m: &mut ServerRequest| { &mut m.bidReject },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, BidResult>(
+            "bidResult",
+            |m: &ServerRequest| { &m.bidResult },
+            |m: &mut ServerRequest| { &mut m.bidResult },
         ));
         fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, AuthReject>(
             "authReject",
@@ -168,6 +175,11 @@ impl ::protobuf::Message for ServerRequest {
                 return false;
             }
         };
+        for v in &self.bidResult {
+            if !v.is_initialized() {
+                return false;
+            }
+        };
         for v in &self.authReject {
             if !v.is_initialized() {
                 return false;
@@ -203,9 +215,12 @@ impl ::protobuf::Message for ServerRequest {
                     ::protobuf::rt::read_singular_message_into_field(is, &mut self.bidReject)?;
                 },
                 58 => {
-                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.authReject)?;
+                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.bidResult)?;
                 },
                 66 => {
+                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.authReject)?;
+                },
+                74 => {
                     ::protobuf::rt::read_singular_message_into_field(is, &mut self.gameStart)?;
                 },
                 tag => {
@@ -243,6 +258,10 @@ impl ::protobuf::Message for ServerRequest {
             let len = v.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
         }
+        if let Some(v) = self.bidResult.as_ref() {
+            let len = v.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
+        }
         if let Some(v) = self.authReject.as_ref() {
             let len = v.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
@@ -275,11 +294,14 @@ impl ::protobuf::Message for ServerRequest {
         if let Some(v) = self.bidReject.as_ref() {
             ::protobuf::rt::write_message_field_with_cached_size(6, v, os)?;
         }
-        if let Some(v) = self.authReject.as_ref() {
+        if let Some(v) = self.bidResult.as_ref() {
             ::protobuf::rt::write_message_field_with_cached_size(7, v, os)?;
         }
-        if let Some(v) = self.gameStart.as_ref() {
+        if let Some(v) = self.authReject.as_ref() {
             ::protobuf::rt::write_message_field_with_cached_size(8, v, os)?;
+        }
+        if let Some(v) = self.gameStart.as_ref() {
+            ::protobuf::rt::write_message_field_with_cached_size(9, v, os)?;
         }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -304,6 +326,7 @@ impl ::protobuf::Message for ServerRequest {
         self.authResponse.clear();
         self.bidResponse.clear();
         self.bidReject.clear();
+        self.bidResult.clear();
         self.authReject.clear();
         self.gameStart.clear();
         self.special_fields.clear();
@@ -317,6 +340,7 @@ impl ::protobuf::Message for ServerRequest {
             authResponse: ::protobuf::MessageField::none(),
             bidResponse: ::protobuf::MessageField::none(),
             bidReject: ::protobuf::MessageField::none(),
+            bidResult: ::protobuf::MessageField::none(),
             authReject: ::protobuf::MessageField::none(),
             gameStart: ::protobuf::MessageField::none(),
             special_fields: ::protobuf::SpecialFields::new(),
@@ -359,6 +383,8 @@ pub mod server_request {
         BID_RESPONSE = 3,
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.BID_REJECT)
         BID_REJECT = 4,
+        // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.BID_RESULT)
+        BID_RESULT = 12,
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.GAME_START)
         GAME_START = 5,
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.GAME_END)
@@ -388,6 +414,7 @@ pub mod server_request {
                 2 => ::std::option::Option::Some(MsgType::BID_REQUEST),
                 3 => ::std::option::Option::Some(MsgType::BID_RESPONSE),
                 4 => ::std::option::Option::Some(MsgType::BID_REJECT),
+                12 => ::std::option::Option::Some(MsgType::BID_RESULT),
                 5 => ::std::option::Option::Some(MsgType::GAME_START),
                 6 => ::std::option::Option::Some(MsgType::GAME_END),
                 7 => ::std::option::Option::Some(MsgType::DISCONNECT),
@@ -405,6 +432,7 @@ pub mod server_request {
             MsgType::BID_REQUEST,
             MsgType::BID_RESPONSE,
             MsgType::BID_REJECT,
+            MsgType::BID_RESULT,
             MsgType::GAME_START,
             MsgType::GAME_END,
             MsgType::DISCONNECT,
@@ -428,12 +456,13 @@ pub mod server_request {
                 MsgType::BID_REQUEST => 3,
                 MsgType::BID_RESPONSE => 4,
                 MsgType::BID_REJECT => 5,
-                MsgType::GAME_START => 6,
-                MsgType::GAME_END => 7,
-                MsgType::DISCONNECT => 8,
-                MsgType::ACK => 9,
-                MsgType::GAME_ABORT => 10,
-                MsgType::ALIVE => 11,
+                MsgType::BID_RESULT => 6,
+                MsgType::GAME_START => 7,
+                MsgType::GAME_END => 8,
+                MsgType::DISCONNECT => 9,
+                MsgType::ACK => 10,
+                MsgType::GAME_ABORT => 11,
+                MsgType::ALIVE => 12,
             };
             Self::enum_descriptor().value_by_index(index)
         }
@@ -1856,157 +1885,530 @@ impl ::protobuf::reflect::ProtobufValue for AuthReject {
     type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
 }
 
+#[derive(PartialEq,Clone,Default,Debug)]
+// @@protoc_insertion_point(message:BidResult)
+pub struct BidResult {
+    // message fields
+    // @@protoc_insertion_point(field:BidResult.player_a_bid)
+    pub player_a_bid: ::std::option::Option<u32>,
+    // @@protoc_insertion_point(field:BidResult.player_b_bid)
+    pub player_b_bid: ::std::option::Option<u32>,
+    // @@protoc_insertion_point(field:BidResult.winner_name)
+    pub winner_name: ::std::option::Option<::std::string::String>,
+    // @@protoc_insertion_point(field:BidResult.result_type)
+    pub result_type: ::std::option::Option<::protobuf::EnumOrUnknown<bid_result::RoundResultType>>,
+    // special fields
+    // @@protoc_insertion_point(special_field:BidResult.special_fields)
+    pub special_fields: ::protobuf::SpecialFields,
+}
+
+impl<'a> ::std::default::Default for &'a BidResult {
+    fn default() -> &'a BidResult {
+        <BidResult as ::protobuf::Message>::default_instance()
+    }
+}
+
+impl BidResult {
+    pub fn new() -> BidResult {
+        ::std::default::Default::default()
+    }
+
+    // required uint32 player_a_bid = 1;
+
+    pub fn player_a_bid(&self) -> u32 {
+        self.player_a_bid.unwrap_or(0)
+    }
+
+    pub fn clear_player_a_bid(&mut self) {
+        self.player_a_bid = ::std::option::Option::None;
+    }
+
+    pub fn has_player_a_bid(&self) -> bool {
+        self.player_a_bid.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_player_a_bid(&mut self, v: u32) {
+        self.player_a_bid = ::std::option::Option::Some(v);
+    }
+
+    // required uint32 player_b_bid = 2;
+
+    pub fn player_b_bid(&self) -> u32 {
+        self.player_b_bid.unwrap_or(0)
+    }
+
+    pub fn clear_player_b_bid(&mut self) {
+        self.player_b_bid = ::std::option::Option::None;
+    }
+
+    pub fn has_player_b_bid(&self) -> bool {
+        self.player_b_bid.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_player_b_bid(&mut self, v: u32) {
+        self.player_b_bid = ::std::option::Option::Some(v);
+    }
+
+    // required string winner_name = 3;
+
+    pub fn winner_name(&self) -> &str {
+        match self.winner_name.as_ref() {
+            Some(v) => v,
+            None => "",
+        }
+    }
+
+    pub fn clear_winner_name(&mut self) {
+        self.winner_name = ::std::option::Option::None;
+    }
+
+    pub fn has_winner_name(&self) -> bool {
+        self.winner_name.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_winner_name(&mut self, v: ::std::string::String) {
+        self.winner_name = ::std::option::Option::Some(v);
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_winner_name(&mut self) -> &mut ::std::string::String {
+        if self.winner_name.is_none() {
+            self.winner_name = ::std::option::Option::Some(::std::string::String::new());
+        }
+        self.winner_name.as_mut().unwrap()
+    }
+
+    // Take field
+    pub fn take_winner_name(&mut self) -> ::std::string::String {
+        self.winner_name.take().unwrap_or_else(|| ::std::string::String::new())
+    }
+
+    // required .BidResult.RoundResultType result_type = 4;
+
+    pub fn result_type(&self) -> bid_result::RoundResultType {
+        match self.result_type {
+            Some(e) => e.enum_value_or(bid_result::RoundResultType::WIN),
+            None => bid_result::RoundResultType::WIN,
+        }
+    }
+
+    pub fn clear_result_type(&mut self) {
+        self.result_type = ::std::option::Option::None;
+    }
+
+    pub fn has_result_type(&self) -> bool {
+        self.result_type.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_result_type(&mut self, v: bid_result::RoundResultType) {
+        self.result_type = ::std::option::Option::Some(::protobuf::EnumOrUnknown::new(v));
+    }
+
+    fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
+        let mut fields = ::std::vec::Vec::with_capacity(4);
+        let mut oneofs = ::std::vec::Vec::with_capacity(0);
+        fields.push(::protobuf::reflect::rt::v2::make_option_accessor::<_, _>(
+            "player_a_bid",
+            |m: &BidResult| { &m.player_a_bid },
+            |m: &mut BidResult| { &mut m.player_a_bid },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_option_accessor::<_, _>(
+            "player_b_bid",
+            |m: &BidResult| { &m.player_b_bid },
+            |m: &mut BidResult| { &mut m.player_b_bid },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_option_accessor::<_, _>(
+            "winner_name",
+            |m: &BidResult| { &m.winner_name },
+            |m: &mut BidResult| { &mut m.winner_name },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_option_accessor::<_, _>(
+            "result_type",
+            |m: &BidResult| { &m.result_type },
+            |m: &mut BidResult| { &mut m.result_type },
+        ));
+        ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<BidResult>(
+            "BidResult",
+            fields,
+            oneofs,
+        )
+    }
+}
+
+impl ::protobuf::Message for BidResult {
+    const NAME: &'static str = "BidResult";
+
+    fn is_initialized(&self) -> bool {
+        if self.player_a_bid.is_none() {
+            return false;
+        }
+        if self.player_b_bid.is_none() {
+            return false;
+        }
+        if self.winner_name.is_none() {
+            return false;
+        }
+        if self.result_type.is_none() {
+            return false;
+        }
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
+        while let Some(tag) = is.read_raw_tag_or_eof()? {
+            match tag {
+                8 => {
+                    self.player_a_bid = ::std::option::Option::Some(is.read_uint32()?);
+                },
+                16 => {
+                    self.player_b_bid = ::std::option::Option::Some(is.read_uint32()?);
+                },
+                26 => {
+                    self.winner_name = ::std::option::Option::Some(is.read_string()?);
+                },
+                32 => {
+                    self.result_type = ::std::option::Option::Some(is.read_enum_or_unknown()?);
+                },
+                tag => {
+                    ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u64 {
+        let mut my_size = 0;
+        if let Some(v) = self.player_a_bid {
+            my_size += ::protobuf::rt::uint32_size(1, v);
+        }
+        if let Some(v) = self.player_b_bid {
+            my_size += ::protobuf::rt::uint32_size(2, v);
+        }
+        if let Some(v) = self.winner_name.as_ref() {
+            my_size += ::protobuf::rt::string_size(3, &v);
+        }
+        if let Some(v) = self.result_type {
+            my_size += ::protobuf::rt::int32_size(4, v.value());
+        }
+        my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
+        self.special_fields.cached_size().set(my_size as u32);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
+        if let Some(v) = self.player_a_bid {
+            os.write_uint32(1, v)?;
+        }
+        if let Some(v) = self.player_b_bid {
+            os.write_uint32(2, v)?;
+        }
+        if let Some(v) = self.winner_name.as_ref() {
+            os.write_string(3, v)?;
+        }
+        if let Some(v) = self.result_type {
+            os.write_enum(4, ::protobuf::EnumOrUnknown::value(&v))?;
+        }
+        os.write_unknown_fields(self.special_fields.unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn special_fields(&self) -> &::protobuf::SpecialFields {
+        &self.special_fields
+    }
+
+    fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
+        &mut self.special_fields
+    }
+
+    fn new() -> BidResult {
+        BidResult::new()
+    }
+
+    fn clear(&mut self) {
+        self.player_a_bid = ::std::option::Option::None;
+        self.player_b_bid = ::std::option::Option::None;
+        self.winner_name = ::std::option::Option::None;
+        self.result_type = ::std::option::Option::None;
+        self.special_fields.clear();
+    }
+
+    fn default_instance() -> &'static BidResult {
+        static instance: BidResult = BidResult {
+            player_a_bid: ::std::option::Option::None,
+            player_b_bid: ::std::option::Option::None,
+            winner_name: ::std::option::Option::None,
+            result_type: ::std::option::Option::None,
+            special_fields: ::protobuf::SpecialFields::new(),
+        };
+        &instance
+    }
+}
+
+impl ::protobuf::MessageFull for BidResult {
+    fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
+        static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
+        descriptor.get(|| file_descriptor().message_by_package_relative_name("BidResult").unwrap()).clone()
+    }
+}
+
+impl ::std::fmt::Display for BidResult {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for BidResult {
+    type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
+}
+
+/// Nested message and enums of message `BidResult`
+pub mod bid_result {
+    #[derive(Clone,Copy,PartialEq,Eq,Debug,Hash)]
+    // @@protoc_insertion_point(enum:BidResult.RoundResultType)
+    pub enum RoundResultType {
+        // @@protoc_insertion_point(enum_value:BidResult.RoundResultType.WIN)
+        WIN = 0,
+        // @@protoc_insertion_point(enum_value:BidResult.RoundResultType.DRAW)
+        DRAW = 1,
+    }
+
+    impl ::protobuf::Enum for RoundResultType {
+        const NAME: &'static str = "RoundResultType";
+
+        fn value(&self) -> i32 {
+            *self as i32
+        }
+
+        fn from_i32(value: i32) -> ::std::option::Option<RoundResultType> {
+            match value {
+                0 => ::std::option::Option::Some(RoundResultType::WIN),
+                1 => ::std::option::Option::Some(RoundResultType::DRAW),
+                _ => ::std::option::Option::None
+            }
+        }
+
+        const VALUES: &'static [RoundResultType] = &[
+            RoundResultType::WIN,
+            RoundResultType::DRAW,
+        ];
+    }
+
+    impl ::protobuf::EnumFull for RoundResultType {
+        fn enum_descriptor() -> ::protobuf::reflect::EnumDescriptor {
+            static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::EnumDescriptor> = ::protobuf::rt::Lazy::new();
+            descriptor.get(|| super::file_descriptor().enum_by_package_relative_name("BidResult.RoundResultType").unwrap()).clone()
+        }
+
+        fn descriptor(&self) -> ::protobuf::reflect::EnumValueDescriptor {
+            let index = *self as usize;
+            Self::enum_descriptor().value_by_index(index)
+        }
+    }
+
+    impl ::std::default::Default for RoundResultType {
+        fn default() -> Self {
+            RoundResultType::WIN
+        }
+    }
+
+    impl RoundResultType {
+        pub(in super) fn generated_enum_descriptor_data() -> ::protobuf::reflect::GeneratedEnumDescriptorData {
+            ::protobuf::reflect::GeneratedEnumDescriptorData::new::<RoundResultType>("BidResult.RoundResultType")
+        }
+    }
+}
+
 static file_descriptor_proto_data: &'static [u8] = b"\
-    \n\x0bComms.proto\"\xba\x04\n\rServerRequest\x120\n\x07msgType\x18\x01\
+    \n\x0bComms.proto\"\xf4\x04\n\rServerRequest\x120\n\x07msgType\x18\x01\
     \x20\x02(\x0e2\x16.ServerRequest.MsgTypeR\x07msgType\x12\"\n\x07gameEnd\
     \x18\x02\x20\x01(\x0b2\x08.GameEndR\x07gameEnd\x12(\n\tgameState\x18\x03\
     \x20\x01(\x0b2\n.GameStateR\tgameState\x121\n\x0cauthResponse\x18\x04\
     \x20\x01(\x0b2\r.AuthResponseR\x0cauthResponse\x12.\n\x0bbidResponse\x18\
     \x05\x20\x01(\x0b2\x0c.BidResponseR\x0bbidResponse\x12(\n\tbidReject\x18\
-    \x06\x20\x01(\x0b2\n.BidRejectR\tbidReject\x12+\n\nauthReject\x18\x07\
-    \x20\x01(\x0b2\x0b.AuthRejectR\nauthReject\x12(\n\tgameStart\x18\x08\x20\
-    \x01(\x0b2\n.GameStartR\tgameStart\"\xc4\x01\n\x07MsgType\x12\x10\n\x0cA\
-    UTH_REQUEST\x10\0\x12\x11\n\rAUTH_RESPONSE\x10\x08\x12\x0f\n\x0bAUTH_REJ\
-    ECT\x10\x01\x12\x0f\n\x0bBID_REQUEST\x10\x02\x12\x10\n\x0cBID_RESPONSE\
-    \x10\x03\x12\x0e\n\nBID_REJECT\x10\x04\x12\x0e\n\nGAME_START\x10\x05\x12\
-    \x0c\n\x08GAME_END\x10\x06\x12\x0e\n\nDISCONNECT\x10\x07\x12\x07\n\x03AC\
-    K\x10\t\x12\x0e\n\nGAME_ABORT\x10\n\x12\t\n\x05ALIVE\x10\x0b\"a\n\x07Gam\
-    eEnd\x12+\n\x06result\x18\x01\x20\x02(\x0e2\x13.GameEnd.GameResultR\x06r\
-    esult\")\n\nGameResult\x12\x07\n\x03WIN\x10\0\x12\x08\n\x04LOSS\x10\x01\
-    \x12\x08\n\x04DRAW\x10\x02\"\xb1\x01\n\tGameStart\x12!\n\x0cplayer1_name\
-    \x18\x01\x20\x02(\tR\x0bplayer1Name\x12!\n\x0cplayer2_name\x18\x02\x20\
-    \x02(\tR\x0bplayer2Name\x12.\n\x13player1_start_money\x18\x03\x20\x02(\r\
-    R\x11player1StartMoney\x12.\n\x13player2_start_money\x18\x04\x20\x02(\rR\
-    \x11player2StartMoney\"\xb6\x01\n\tGameState\x12!\n\x0cplayer1_bids\x18\
-    \x01\x20\x03(\rR\x0bplayer1Bids\x12!\n\x0cplayer2_bids\x18\x02\x20\x03(\
-    \rR\x0bplayer2Bids\x12%\n\x0ecurrent_player\x18\x03\x20\x02(\rR\rcurrent\
-    Player\x12\x1d\n\nbottle_pos\x18\x04\x20\x02(\rR\tbottlePos\x12\x1d\n\nm\
-    oney_left\x18\x05\x20\x02(\rR\tmoneyLeft\"/\n\x0cAuthResponse\x12\x1f\n\
-    \x0bplayer_name\x18\x01\x20\x02(\tR\nplayerName\"#\n\x0bBidResponse\x12\
-    \x14\n\x05money\x18\x01\x20\x02(\rR\x05money\"#\n\tBidReject\x12\x16\n\
-    \x06reason\x18\x01\x20\x02(\tR\x06reason\"$\n\nAuthReject\x12\x16\n\x06r\
-    eason\x18\x01\x20\x02(\tR\x06reasonJ\xf9\x14\n\x06\x12\x04\0\0\\\x01\n\
-    \x08\n\x01\x0c\x12\x03\0\0\x12\n\n\n\x02\x04\0\x12\x04\x02\0(\x01\n\n\n\
-    \x03\x04\0\x01\x12\x03\x02\x08\x15\n\x0c\n\x04\x04\0\x04\0\x12\x04\x03\
-    \x02\x16\x03\n\x0c\n\x05\x04\0\x04\0\x01\x12\x03\x03\x07\x0e\n\r\n\x06\
-    \x04\0\x04\0\x02\0\x12\x03\x04\x04\x15\n\x0e\n\x07\x04\0\x04\0\x02\0\x01\
-    \x12\x03\x04\x04\x10\n\x0e\n\x07\x04\0\x04\0\x02\0\x02\x12\x03\x04\x13\
-    \x14\n\r\n\x06\x04\0\x04\0\x02\x01\x12\x03\x05\x04\x16\n\x0e\n\x07\x04\0\
-    \x04\0\x02\x01\x01\x12\x03\x05\x04\x11\n\x0e\n\x07\x04\0\x04\0\x02\x01\
-    \x02\x12\x03\x05\x14\x15\n\r\n\x06\x04\0\x04\0\x02\x02\x12\x03\x06\x04\
-    \x14\n\x0e\n\x07\x04\0\x04\0\x02\x02\x01\x12\x03\x06\x04\x0f\n\x0e\n\x07\
-    \x04\0\x04\0\x02\x02\x02\x12\x03\x06\x12\x13\n\r\n\x06\x04\0\x04\0\x02\
-    \x03\x12\x03\x08\x04\x14\n\x0e\n\x07\x04\0\x04\0\x02\x03\x01\x12\x03\x08\
-    \x04\x0f\n\x0e\n\x07\x04\0\x04\0\x02\x03\x02\x12\x03\x08\x12\x13\n\r\n\
-    \x06\x04\0\x04\0\x02\x04\x12\x03\t\x04\x15\n\x0e\n\x07\x04\0\x04\0\x02\
-    \x04\x01\x12\x03\t\x04\x10\n\x0e\n\x07\x04\0\x04\0\x02\x04\x02\x12\x03\t\
-    \x13\x14\n\r\n\x06\x04\0\x04\0\x02\x05\x12\x03\n\x04\x13\n\x0e\n\x07\x04\
-    \0\x04\0\x02\x05\x01\x12\x03\n\x04\x0e\n\x0e\n\x07\x04\0\x04\0\x02\x05\
-    \x02\x12\x03\n\x11\x12\n\r\n\x06\x04\0\x04\0\x02\x06\x12\x03\x0c\x04\x13\
-    \n\x0e\n\x07\x04\0\x04\0\x02\x06\x01\x12\x03\x0c\x04\x0e\n\x0e\n\x07\x04\
-    \0\x04\0\x02\x06\x02\x12\x03\x0c\x11\x12\n\r\n\x06\x04\0\x04\0\x02\x07\
-    \x12\x03\r\x04\x11\n\x0e\n\x07\x04\0\x04\0\x02\x07\x01\x12\x03\r\x04\x0c\
-    \n\x0e\n\x07\x04\0\x04\0\x02\x07\x02\x12\x03\r\x0f\x10\n\r\n\x06\x04\0\
-    \x04\0\x02\x08\x12\x03\x0f\x04\x13\n\x0e\n\x07\x04\0\x04\0\x02\x08\x01\
-    \x12\x03\x0f\x04\x0e\n\x0e\n\x07\x04\0\x04\0\x02\x08\x02\x12\x03\x0f\x11\
-    \x12\n\r\n\x06\x04\0\x04\0\x02\t\x12\x03\x11\x04\x0c\n\x0e\n\x07\x04\0\
-    \x04\0\x02\t\x01\x12\x03\x11\x04\x07\n\x0e\n\x07\x04\0\x04\0\x02\t\x02\
-    \x12\x03\x11\n\x0b\n\r\n\x06\x04\0\x04\0\x02\n\x12\x03\x13\x04\x14\n\x0e\
-    \n\x07\x04\0\x04\0\x02\n\x01\x12\x03\x13\x04\x0e\n\x0e\n\x07\x04\0\x04\0\
-    \x02\n\x02\x12\x03\x13\x11\x13\n\r\n\x06\x04\0\x04\0\x02\x0b\x12\x03\x14\
-    \x04\x0f\n\x0e\n\x07\x04\0\x04\0\x02\x0b\x01\x12\x03\x14\x04\t\n\x0e\n\
-    \x07\x04\0\x04\0\x02\x0b\x02\x12\x03\x14\x0c\x0e\n\x0b\n\x04\x04\0\x02\0\
-    \x12\x03\x17\x02\x1f\n\x0c\n\x05\x04\0\x02\0\x04\x12\x03\x17\x02\n\n\x0c\
-    \n\x05\x04\0\x02\0\x06\x12\x03\x17\x0b\x12\n\x0c\n\x05\x04\0\x02\0\x01\
-    \x12\x03\x17\x13\x1a\n\x0c\n\x05\x04\0\x02\0\x03\x12\x03\x17\x1d\x1e\n7\
-    \n\x04\x04\0\x02\x01\x12\x03\x1a\x02\x1f\x1a*\x20The\x20game\x20has\x20e\
-    nded.\x20Provide\x20the\x20results.\n\n\x0c\n\x05\x04\0\x02\x01\x04\x12\
-    \x03\x1a\x02\n\n\x0c\n\x05\x04\0\x02\x01\x06\x12\x03\x1a\x0b\x12\n\x0c\n\
-    \x05\x04\0\x02\x01\x01\x12\x03\x1a\x13\x1a\n\x0c\n\x05\x04\0\x02\x01\x03\
-    \x12\x03\x1a\x1d\x1e\n&\n\x04\x04\0\x02\x02\x12\x03\x1d\x02#\x1a\x19\x20\
-    Provided\x20in\x20BID_REQUEST\n\n\x0c\n\x05\x04\0\x02\x02\x04\x12\x03\
-    \x1d\x02\n\n\x0c\n\x05\x04\0\x02\x02\x06\x12\x03\x1d\x0b\x14\n\x0c\n\x05\
-    \x04\0\x02\x02\x01\x12\x03\x1d\x15\x1e\n\x0c\n\x05\x04\0\x02\x02\x03\x12\
-    \x03\x1d!\"\n\x0b\n\x04\x04\0\x02\x03\x12\x03\x1f\x02)\n\x0c\n\x05\x04\0\
-    \x02\x03\x04\x12\x03\x1f\x02\n\n\x0c\n\x05\x04\0\x02\x03\x06\x12\x03\x1f\
-    \x0b\x17\n\x0c\n\x05\x04\0\x02\x03\x01\x12\x03\x1f\x18$\n\x0c\n\x05\x04\
-    \0\x02\x03\x03\x12\x03\x1f'(\n\x0b\n\x04\x04\0\x02\x04\x12\x03\x20\x02'\
-    \n\x0c\n\x05\x04\0\x02\x04\x04\x12\x03\x20\x02\n\n\x0c\n\x05\x04\0\x02\
-    \x04\x06\x12\x03\x20\x0b\x16\n\x0c\n\x05\x04\0\x02\x04\x01\x12\x03\x20\
-    \x17\"\n\x0c\n\x05\x04\0\x02\x04\x03\x12\x03\x20%&\n\x0b\n\x04\x04\0\x02\
-    \x05\x12\x03\"\x02#\n\x0c\n\x05\x04\0\x02\x05\x04\x12\x03\"\x02\n\n\x0c\
-    \n\x05\x04\0\x02\x05\x06\x12\x03\"\x0b\x14\n\x0c\n\x05\x04\0\x02\x05\x01\
-    \x12\x03\"\x15\x1e\n\x0c\n\x05\x04\0\x02\x05\x03\x12\x03\"!\"\n\x0b\n\
-    \x04\x04\0\x02\x06\x12\x03$\x02%\n\x0c\n\x05\x04\0\x02\x06\x04\x12\x03$\
-    \x02\n\n\x0c\n\x05\x04\0\x02\x06\x06\x12\x03$\x0b\x15\n\x0c\n\x05\x04\0\
-    \x02\x06\x01\x12\x03$\x16\x20\n\x0c\n\x05\x04\0\x02\x06\x03\x12\x03$#$\n\
-    \x0b\n\x04\x04\0\x02\x07\x12\x03&\x02#\n\x0c\n\x05\x04\0\x02\x07\x04\x12\
-    \x03&\x02\n\n\x0c\n\x05\x04\0\x02\x07\x06\x12\x03&\x0b\x14\n\x0c\n\x05\
-    \x04\0\x02\x07\x01\x12\x03&\x15\x1e\n\x0c\n\x05\x04\0\x02\x07\x03\x12\
-    \x03&!\"\n\n\n\x02\x04\x01\x12\x04*\02\x01\n\n\n\x03\x04\x01\x01\x12\x03\
-    *\x08\x0f\n\x0c\n\x04\x04\x01\x04\0\x12\x04+\x02/\x03\n\x0c\n\x05\x04\
-    \x01\x04\0\x01\x12\x03+\x07\x11\n\r\n\x06\x04\x01\x04\0\x02\0\x12\x03,\
-    \x04\x0c\n\x0e\n\x07\x04\x01\x04\0\x02\0\x01\x12\x03,\x04\x07\n\x0e\n\
-    \x07\x04\x01\x04\0\x02\0\x02\x12\x03,\n\x0b\n\r\n\x06\x04\x01\x04\0\x02\
-    \x01\x12\x03-\x04\r\n\x0e\n\x07\x04\x01\x04\0\x02\x01\x01\x12\x03-\x04\
-    \x08\n\x0e\n\x07\x04\x01\x04\0\x02\x01\x02\x12\x03-\x0b\x0c\n\r\n\x06\
-    \x04\x01\x04\0\x02\x02\x12\x03.\x04\r\n\x0e\n\x07\x04\x01\x04\0\x02\x02\
-    \x01\x12\x03.\x04\x08\n\x0e\n\x07\x04\x01\x04\0\x02\x02\x02\x12\x03.\x0b\
-    \x0c\n\x0b\n\x04\x04\x01\x02\0\x12\x031\x02!\n\x0c\n\x05\x04\x01\x02\0\
-    \x04\x12\x031\x02\n\n\x0c\n\x05\x04\x01\x02\0\x06\x12\x031\x0b\x15\n\x0c\
-    \n\x05\x04\x01\x02\0\x01\x12\x031\x16\x1c\n\x0c\n\x05\x04\x01\x02\0\x03\
-    \x12\x031\x1f\x20\n\n\n\x02\x04\x02\x12\x044\09\x01\n\n\n\x03\x04\x02\
-    \x01\x12\x034\x08\x11\n\x0b\n\x04\x04\x02\x02\0\x12\x035\x02#\n\x0c\n\
-    \x05\x04\x02\x02\0\x04\x12\x035\x02\n\n\x0c\n\x05\x04\x02\x02\0\x05\x12\
-    \x035\x0b\x11\n\x0c\n\x05\x04\x02\x02\0\x01\x12\x035\x12\x1e\n\x0c\n\x05\
-    \x04\x02\x02\0\x03\x12\x035!\"\n\x0b\n\x04\x04\x02\x02\x01\x12\x036\x02#\
-    \n\x0c\n\x05\x04\x02\x02\x01\x04\x12\x036\x02\n\n\x0c\n\x05\x04\x02\x02\
-    \x01\x05\x12\x036\x0b\x11\n\x0c\n\x05\x04\x02\x02\x01\x01\x12\x036\x12\
-    \x1e\n\x0c\n\x05\x04\x02\x02\x01\x03\x12\x036!\"\n\x0b\n\x04\x04\x02\x02\
-    \x02\x12\x037\x02*\n\x0c\n\x05\x04\x02\x02\x02\x04\x12\x037\x02\n\n\x0c\
-    \n\x05\x04\x02\x02\x02\x05\x12\x037\x0b\x11\n\x0c\n\x05\x04\x02\x02\x02\
-    \x01\x12\x037\x12%\n\x0c\n\x05\x04\x02\x02\x02\x03\x12\x037()\n\x0b\n\
-    \x04\x04\x02\x02\x03\x12\x038\x02*\n\x0c\n\x05\x04\x02\x02\x03\x04\x12\
-    \x038\x02\n\n\x0c\n\x05\x04\x02\x02\x03\x05\x12\x038\x0b\x11\n\x0c\n\x05\
-    \x04\x02\x02\x03\x01\x12\x038\x12%\n\x0c\n\x05\x04\x02\x02\x03\x03\x12\
-    \x038()\n\n\n\x02\x04\x03\x12\x04;\0L\x01\n\n\n\x03\x04\x03\x01\x12\x03;\
-    \x08\x11\n\x1d\n\x04\x04\x03\x02\0\x12\x03>\x02#\x1a\x10\x20player1's\
-    \x20bids\n\n\x0c\n\x05\x04\x03\x02\0\x04\x12\x03>\x02\n\n\x0c\n\x05\x04\
-    \x03\x02\0\x05\x12\x03>\x0b\x11\n\x0c\n\x05\x04\x03\x02\0\x01\x12\x03>\
-    \x12\x1e\n\x0c\n\x05\x04\x03\x02\0\x03\x12\x03>!\"\n\x1e\n\x04\x04\x03\
-    \x02\x01\x12\x03A\x02#\x1a\x11\x20player2's\x20bids.\n\n\x0c\n\x05\x04\
-    \x03\x02\x01\x04\x12\x03A\x02\n\n\x0c\n\x05\x04\x03\x02\x01\x05\x12\x03A\
-    \x0b\x11\n\x0c\n\x05\x04\x03\x02\x01\x01\x12\x03A\x12\x1e\n\x0c\n\x05\
-    \x04\x03\x02\x01\x03\x12\x03A!\"\n*\n\x04\x04\x03\x02\x02\x12\x03D\x02%\
-    \x1a\x1d\x20Who\x20the\x20receiving\x20player\x20is\n\n\x0c\n\x05\x04\
-    \x03\x02\x02\x04\x12\x03D\x02\n\n\x0c\n\x05\x04\x03\x02\x02\x05\x12\x03D\
-    \x0b\x11\n\x0c\n\x05\x04\x03\x02\x02\x01\x12\x03D\x12\x20\n\x0c\n\x05\
-    \x04\x03\x02\x02\x03\x12\x03D#$\n#\n\x04\x04\x03\x02\x03\x12\x03G\x02!\
-    \x1a\x16\x20Where\x20is\x20the\x20bottle?\n\n\x0c\n\x05\x04\x03\x02\x03\
-    \x04\x12\x03G\x02\n\n\x0c\n\x05\x04\x03\x02\x03\x05\x12\x03G\x0b\x11\n\
-    \x0c\n\x05\x04\x03\x02\x03\x01\x12\x03G\x12\x1c\n\x0c\n\x05\x04\x03\x02\
-    \x03\x03\x12\x03G\x1f\x20\n(\n\x04\x04\x03\x02\x04\x12\x03J\x02!\x1a\x1b\
-    \x20Current\x20player\x20money\x20left\n\n\x0c\n\x05\x04\x03\x02\x04\x04\
-    \x12\x03J\x02\n\n\x0c\n\x05\x04\x03\x02\x04\x05\x12\x03J\x0b\x11\n\x0c\n\
-    \x05\x04\x03\x02\x04\x01\x12\x03J\x12\x1c\n\x0c\n\x05\x04\x03\x02\x04\
-    \x03\x12\x03J\x1f\x20\n\n\n\x02\x04\x04\x12\x04N\0P\x01\n\n\n\x03\x04\
-    \x04\x01\x12\x03N\x08\x14\n\x0b\n\x04\x04\x04\x02\0\x12\x03O\x02\"\n\x0c\
-    \n\x05\x04\x04\x02\0\x04\x12\x03O\x02\n\n\x0c\n\x05\x04\x04\x02\0\x05\
-    \x12\x03O\x0b\x11\n\x0c\n\x05\x04\x04\x02\0\x01\x12\x03O\x12\x1d\n\x0c\n\
-    \x05\x04\x04\x02\0\x03\x12\x03O\x20!\n\n\n\x02\x04\x05\x12\x04R\0T\x01\n\
-    \n\n\x03\x04\x05\x01\x12\x03R\x08\x13\n\x0b\n\x04\x04\x05\x02\0\x12\x03S\
-    \x02\x1c\n\x0c\n\x05\x04\x05\x02\0\x04\x12\x03S\x02\n\n\x0c\n\x05\x04\
-    \x05\x02\0\x05\x12\x03S\x0b\x11\n\x0c\n\x05\x04\x05\x02\0\x01\x12\x03S\
-    \x12\x17\n\x0c\n\x05\x04\x05\x02\0\x03\x12\x03S\x1a\x1b\n\n\n\x02\x04\
-    \x06\x12\x04V\0X\x01\n\n\n\x03\x04\x06\x01\x12\x03V\x08\x11\n\x0b\n\x04\
-    \x04\x06\x02\0\x12\x03W\x02\x1d\n\x0c\n\x05\x04\x06\x02\0\x04\x12\x03W\
-    \x02\n\n\x0c\n\x05\x04\x06\x02\0\x05\x12\x03W\x0b\x11\n\x0c\n\x05\x04\
-    \x06\x02\0\x01\x12\x03W\x12\x18\n\x0c\n\x05\x04\x06\x02\0\x03\x12\x03W\
-    \x1b\x1c\n\n\n\x02\x04\x07\x12\x04Z\0\\\x01\n\n\n\x03\x04\x07\x01\x12\
-    \x03Z\x08\x12\n\x0b\n\x04\x04\x07\x02\0\x12\x03[\x02\x1d\n\x0c\n\x05\x04\
-    \x07\x02\0\x04\x12\x03[\x02\n\n\x0c\n\x05\x04\x07\x02\0\x05\x12\x03[\x0b\
-    \x11\n\x0c\n\x05\x04\x07\x02\0\x01\x12\x03[\x12\x18\n\x0c\n\x05\x04\x07\
-    \x02\0\x03\x12\x03[\x1b\x1c\
+    \x06\x20\x01(\x0b2\n.BidRejectR\tbidReject\x12(\n\tbidResult\x18\x07\x20\
+    \x01(\x0b2\n.BidResultR\tbidResult\x12+\n\nauthReject\x18\x08\x20\x01(\
+    \x0b2\x0b.AuthRejectR\nauthReject\x12(\n\tgameStart\x18\t\x20\x01(\x0b2\
+    \n.GameStartR\tgameStart\"\xd4\x01\n\x07MsgType\x12\x10\n\x0cAUTH_REQUES\
+    T\x10\0\x12\x11\n\rAUTH_RESPONSE\x10\x08\x12\x0f\n\x0bAUTH_REJECT\x10\
+    \x01\x12\x0f\n\x0bBID_REQUEST\x10\x02\x12\x10\n\x0cBID_RESPONSE\x10\x03\
+    \x12\x0e\n\nBID_REJECT\x10\x04\x12\x0e\n\nBID_RESULT\x10\x0c\x12\x0e\n\n\
+    GAME_START\x10\x05\x12\x0c\n\x08GAME_END\x10\x06\x12\x0e\n\nDISCONNECT\
+    \x10\x07\x12\x07\n\x03ACK\x10\t\x12\x0e\n\nGAME_ABORT\x10\n\x12\t\n\x05A\
+    LIVE\x10\x0b\"a\n\x07GameEnd\x12+\n\x06result\x18\x01\x20\x02(\x0e2\x13.\
+    GameEnd.GameResultR\x06result\")\n\nGameResult\x12\x07\n\x03WIN\x10\0\
+    \x12\x08\n\x04LOSS\x10\x01\x12\x08\n\x04DRAW\x10\x02\"\xb1\x01\n\tGameSt\
+    art\x12!\n\x0cplayer1_name\x18\x01\x20\x02(\tR\x0bplayer1Name\x12!\n\x0c\
+    player2_name\x18\x02\x20\x02(\tR\x0bplayer2Name\x12.\n\x13player1_start_\
+    money\x18\x03\x20\x02(\rR\x11player1StartMoney\x12.\n\x13player2_start_m\
+    oney\x18\x04\x20\x02(\rR\x11player2StartMoney\"\xb6\x01\n\tGameState\x12\
+    !\n\x0cplayer1_bids\x18\x01\x20\x03(\rR\x0bplayer1Bids\x12!\n\x0cplayer2\
+    _bids\x18\x02\x20\x03(\rR\x0bplayer2Bids\x12%\n\x0ecurrent_player\x18\
+    \x03\x20\x02(\rR\rcurrentPlayer\x12\x1d\n\nbottle_pos\x18\x04\x20\x02(\r\
+    R\tbottlePos\x12\x1d\n\nmoney_left\x18\x05\x20\x02(\rR\tmoneyLeft\"/\n\
+    \x0cAuthResponse\x12\x1f\n\x0bplayer_name\x18\x01\x20\x02(\tR\nplayerNam\
+    e\"#\n\x0bBidResponse\x12\x14\n\x05money\x18\x01\x20\x02(\rR\x05money\"#\
+    \n\tBidReject\x12\x16\n\x06reason\x18\x01\x20\x02(\tR\x06reason\"$\n\nAu\
+    thReject\x12\x16\n\x06reason\x18\x01\x20\x02(\tR\x06reason\"\xd3\x01\n\t\
+    BidResult\x12\x20\n\x0cplayer_a_bid\x18\x01\x20\x02(\rR\nplayerABid\x12\
+    \x20\n\x0cplayer_b_bid\x18\x02\x20\x02(\rR\nplayerBBid\x12\x1f\n\x0bwinn\
+    er_name\x18\x03\x20\x02(\tR\nwinnerName\x12;\n\x0bresult_type\x18\x04\
+    \x20\x02(\x0e2\x1a.BidResult.RoundResultTypeR\nresultType\"$\n\x0fRoundR\
+    esultType\x12\x07\n\x03WIN\x10\0\x12\x08\n\x04DRAW\x10\x01J\xd6\x19\n\
+    \x06\x12\x04\0\0o\x01\n\x08\n\x01\x0c\x12\x03\0\0\x12\n\n\n\x02\x04\0\
+    \x12\x04\x02\0-\x01\n\n\n\x03\x04\0\x01\x12\x03\x02\x08\x15\n\x0c\n\x04\
+    \x04\0\x04\0\x12\x04\x06\x02\x1a\x03\n\x0c\n\x05\x04\0\x04\0\x01\x12\x03\
+    \x06\x07\x0e\n\r\n\x06\x04\0\x04\0\x02\0\x12\x03\x07\x04\x15\n\x0e\n\x07\
+    \x04\0\x04\0\x02\0\x01\x12\x03\x07\x04\x10\n\x0e\n\x07\x04\0\x04\0\x02\0\
+    \x02\x12\x03\x07\x13\x14\n\r\n\x06\x04\0\x04\0\x02\x01\x12\x03\x08\x04\
+    \x16\n\x0e\n\x07\x04\0\x04\0\x02\x01\x01\x12\x03\x08\x04\x11\n\x0e\n\x07\
+    \x04\0\x04\0\x02\x01\x02\x12\x03\x08\x14\x15\n\r\n\x06\x04\0\x04\0\x02\
+    \x02\x12\x03\t\x04\x14\n\x0e\n\x07\x04\0\x04\0\x02\x02\x01\x12\x03\t\x04\
+    \x0f\n\x0e\n\x07\x04\0\x04\0\x02\x02\x02\x12\x03\t\x12\x13\n\r\n\x06\x04\
+    \0\x04\0\x02\x03\x12\x03\x0b\x04\x14\n\x0e\n\x07\x04\0\x04\0\x02\x03\x01\
+    \x12\x03\x0b\x04\x0f\n\x0e\n\x07\x04\0\x04\0\x02\x03\x02\x12\x03\x0b\x12\
+    \x13\n\r\n\x06\x04\0\x04\0\x02\x04\x12\x03\x0c\x04\x15\n\x0e\n\x07\x04\0\
+    \x04\0\x02\x04\x01\x12\x03\x0c\x04\x10\n\x0e\n\x07\x04\0\x04\0\x02\x04\
+    \x02\x12\x03\x0c\x13\x14\n\r\n\x06\x04\0\x04\0\x02\x05\x12\x03\r\x04\x13\
+    \n\x0e\n\x07\x04\0\x04\0\x02\x05\x01\x12\x03\r\x04\x0e\n\x0e\n\x07\x04\0\
+    \x04\0\x02\x05\x02\x12\x03\r\x11\x12\n\r\n\x06\x04\0\x04\0\x02\x06\x12\
+    \x03\x0e\x04\x14\n\x0e\n\x07\x04\0\x04\0\x02\x06\x01\x12\x03\x0e\x04\x0e\
+    \n\x0e\n\x07\x04\0\x04\0\x02\x06\x02\x12\x03\x0e\x11\x13\n\r\n\x06\x04\0\
+    \x04\0\x02\x07\x12\x03\x10\x04\x13\n\x0e\n\x07\x04\0\x04\0\x02\x07\x01\
+    \x12\x03\x10\x04\x0e\n\x0e\n\x07\x04\0\x04\0\x02\x07\x02\x12\x03\x10\x11\
+    \x12\n\r\n\x06\x04\0\x04\0\x02\x08\x12\x03\x11\x04\x11\n\x0e\n\x07\x04\0\
+    \x04\0\x02\x08\x01\x12\x03\x11\x04\x0c\n\x0e\n\x07\x04\0\x04\0\x02\x08\
+    \x02\x12\x03\x11\x0f\x10\n\r\n\x06\x04\0\x04\0\x02\t\x12\x03\x13\x04\x13\
+    \n\x0e\n\x07\x04\0\x04\0\x02\t\x01\x12\x03\x13\x04\x0e\n\x0e\n\x07\x04\0\
+    \x04\0\x02\t\x02\x12\x03\x13\x11\x12\n\r\n\x06\x04\0\x04\0\x02\n\x12\x03\
+    \x15\x04\x0c\n\x0e\n\x07\x04\0\x04\0\x02\n\x01\x12\x03\x15\x04\x07\n\x0e\
+    \n\x07\x04\0\x04\0\x02\n\x02\x12\x03\x15\n\x0b\n\r\n\x06\x04\0\x04\0\x02\
+    \x0b\x12\x03\x17\x04\x14\n\x0e\n\x07\x04\0\x04\0\x02\x0b\x01\x12\x03\x17\
+    \x04\x0e\n\x0e\n\x07\x04\0\x04\0\x02\x0b\x02\x12\x03\x17\x11\x13\n\r\n\
+    \x06\x04\0\x04\0\x02\x0c\x12\x03\x18\x04\x0f\n\x0e\n\x07\x04\0\x04\0\x02\
+    \x0c\x01\x12\x03\x18\x04\t\n\x0e\n\x07\x04\0\x04\0\x02\x0c\x02\x12\x03\
+    \x18\x0c\x0e\n\x0b\n\x04\x04\0\x02\0\x12\x03\x1b\x02\x1f\n\x0c\n\x05\x04\
+    \0\x02\0\x04\x12\x03\x1b\x02\n\n\x0c\n\x05\x04\0\x02\0\x06\x12\x03\x1b\
+    \x0b\x12\n\x0c\n\x05\x04\0\x02\0\x01\x12\x03\x1b\x13\x1a\n\x0c\n\x05\x04\
+    \0\x02\0\x03\x12\x03\x1b\x1d\x1e\n7\n\x04\x04\0\x02\x01\x12\x03\x1e\x02\
+    \x1f\x1a*\x20The\x20game\x20has\x20ended.\x20Provide\x20the\x20results.\
+    \n\n\x0c\n\x05\x04\0\x02\x01\x04\x12\x03\x1e\x02\n\n\x0c\n\x05\x04\0\x02\
+    \x01\x06\x12\x03\x1e\x0b\x12\n\x0c\n\x05\x04\0\x02\x01\x01\x12\x03\x1e\
+    \x13\x1a\n\x0c\n\x05\x04\0\x02\x01\x03\x12\x03\x1e\x1d\x1e\n&\n\x04\x04\
+    \0\x02\x02\x12\x03!\x02#\x1a\x19\x20Provided\x20in\x20BID_REQUEST\n\n\
+    \x0c\n\x05\x04\0\x02\x02\x04\x12\x03!\x02\n\n\x0c\n\x05\x04\0\x02\x02\
+    \x06\x12\x03!\x0b\x14\n\x0c\n\x05\x04\0\x02\x02\x01\x12\x03!\x15\x1e\n\
+    \x0c\n\x05\x04\0\x02\x02\x03\x12\x03!!\"\n\x0b\n\x04\x04\0\x02\x03\x12\
+    \x03#\x02)\n\x0c\n\x05\x04\0\x02\x03\x04\x12\x03#\x02\n\n\x0c\n\x05\x04\
+    \0\x02\x03\x06\x12\x03#\x0b\x17\n\x0c\n\x05\x04\0\x02\x03\x01\x12\x03#\
+    \x18$\n\x0c\n\x05\x04\0\x02\x03\x03\x12\x03#'(\n\x0b\n\x04\x04\0\x02\x04\
+    \x12\x03$\x02'\n\x0c\n\x05\x04\0\x02\x04\x04\x12\x03$\x02\n\n\x0c\n\x05\
+    \x04\0\x02\x04\x06\x12\x03$\x0b\x16\n\x0c\n\x05\x04\0\x02\x04\x01\x12\
+    \x03$\x17\"\n\x0c\n\x05\x04\0\x02\x04\x03\x12\x03$%&\n\x0b\n\x04\x04\0\
+    \x02\x05\x12\x03&\x02#\n\x0c\n\x05\x04\0\x02\x05\x04\x12\x03&\x02\n\n\
+    \x0c\n\x05\x04\0\x02\x05\x06\x12\x03&\x0b\x14\n\x0c\n\x05\x04\0\x02\x05\
+    \x01\x12\x03&\x15\x1e\n\x0c\n\x05\x04\0\x02\x05\x03\x12\x03&!\"\n\x0b\n\
+    \x04\x04\0\x02\x06\x12\x03'\x02#\n\x0c\n\x05\x04\0\x02\x06\x04\x12\x03'\
+    \x02\n\n\x0c\n\x05\x04\0\x02\x06\x06\x12\x03'\x0b\x14\n\x0c\n\x05\x04\0\
+    \x02\x06\x01\x12\x03'\x15\x1e\n\x0c\n\x05\x04\0\x02\x06\x03\x12\x03'!\"\
+    \n\x0b\n\x04\x04\0\x02\x07\x12\x03)\x02%\n\x0c\n\x05\x04\0\x02\x07\x04\
+    \x12\x03)\x02\n\n\x0c\n\x05\x04\0\x02\x07\x06\x12\x03)\x0b\x15\n\x0c\n\
+    \x05\x04\0\x02\x07\x01\x12\x03)\x16\x20\n\x0c\n\x05\x04\0\x02\x07\x03\
+    \x12\x03)#$\n\x0b\n\x04\x04\0\x02\x08\x12\x03+\x02#\n\x0c\n\x05\x04\0\
+    \x02\x08\x04\x12\x03+\x02\n\n\x0c\n\x05\x04\0\x02\x08\x06\x12\x03+\x0b\
+    \x14\n\x0c\n\x05\x04\0\x02\x08\x01\x12\x03+\x15\x1e\n\x0c\n\x05\x04\0\
+    \x02\x08\x03\x12\x03+!\"\n\n\n\x02\x04\x01\x12\x04/\07\x01\n\n\n\x03\x04\
+    \x01\x01\x12\x03/\x08\x0f\n\x0c\n\x04\x04\x01\x04\0\x12\x040\x024\x03\n\
+    \x0c\n\x05\x04\x01\x04\0\x01\x12\x030\x07\x11\n\r\n\x06\x04\x01\x04\0\
+    \x02\0\x12\x031\x04\x0c\n\x0e\n\x07\x04\x01\x04\0\x02\0\x01\x12\x031\x04\
+    \x07\n\x0e\n\x07\x04\x01\x04\0\x02\0\x02\x12\x031\n\x0b\n\r\n\x06\x04\
+    \x01\x04\0\x02\x01\x12\x032\x04\r\n\x0e\n\x07\x04\x01\x04\0\x02\x01\x01\
+    \x12\x032\x04\x08\n\x0e\n\x07\x04\x01\x04\0\x02\x01\x02\x12\x032\x0b\x0c\
+    \n\r\n\x06\x04\x01\x04\0\x02\x02\x12\x033\x04\r\n\x0e\n\x07\x04\x01\x04\
+    \0\x02\x02\x01\x12\x033\x04\x08\n\x0e\n\x07\x04\x01\x04\0\x02\x02\x02\
+    \x12\x033\x0b\x0c\n\x0b\n\x04\x04\x01\x02\0\x12\x036\x02!\n\x0c\n\x05\
+    \x04\x01\x02\0\x04\x12\x036\x02\n\n\x0c\n\x05\x04\x01\x02\0\x06\x12\x036\
+    \x0b\x15\n\x0c\n\x05\x04\x01\x02\0\x01\x12\x036\x16\x1c\n\x0c\n\x05\x04\
+    \x01\x02\0\x03\x12\x036\x1f\x20\n\n\n\x02\x04\x02\x12\x049\0>\x01\n\n\n\
+    \x03\x04\x02\x01\x12\x039\x08\x11\n\x0b\n\x04\x04\x02\x02\0\x12\x03:\x02\
+    #\n\x0c\n\x05\x04\x02\x02\0\x04\x12\x03:\x02\n\n\x0c\n\x05\x04\x02\x02\0\
+    \x05\x12\x03:\x0b\x11\n\x0c\n\x05\x04\x02\x02\0\x01\x12\x03:\x12\x1e\n\
+    \x0c\n\x05\x04\x02\x02\0\x03\x12\x03:!\"\n\x0b\n\x04\x04\x02\x02\x01\x12\
+    \x03;\x02#\n\x0c\n\x05\x04\x02\x02\x01\x04\x12\x03;\x02\n\n\x0c\n\x05\
+    \x04\x02\x02\x01\x05\x12\x03;\x0b\x11\n\x0c\n\x05\x04\x02\x02\x01\x01\
+    \x12\x03;\x12\x1e\n\x0c\n\x05\x04\x02\x02\x01\x03\x12\x03;!\"\n\x0b\n\
+    \x04\x04\x02\x02\x02\x12\x03<\x02*\n\x0c\n\x05\x04\x02\x02\x02\x04\x12\
+    \x03<\x02\n\n\x0c\n\x05\x04\x02\x02\x02\x05\x12\x03<\x0b\x11\n\x0c\n\x05\
+    \x04\x02\x02\x02\x01\x12\x03<\x12%\n\x0c\n\x05\x04\x02\x02\x02\x03\x12\
+    \x03<()\n\x0b\n\x04\x04\x02\x02\x03\x12\x03=\x02*\n\x0c\n\x05\x04\x02\
+    \x02\x03\x04\x12\x03=\x02\n\n\x0c\n\x05\x04\x02\x02\x03\x05\x12\x03=\x0b\
+    \x11\n\x0c\n\x05\x04\x02\x02\x03\x01\x12\x03=\x12%\n\x0c\n\x05\x04\x02\
+    \x02\x03\x03\x12\x03=()\n\n\n\x02\x04\x03\x12\x04@\0Q\x01\n\n\n\x03\x04\
+    \x03\x01\x12\x03@\x08\x11\n\x1d\n\x04\x04\x03\x02\0\x12\x03C\x02#\x1a\
+    \x10\x20player1's\x20bids\n\n\x0c\n\x05\x04\x03\x02\0\x04\x12\x03C\x02\n\
+    \n\x0c\n\x05\x04\x03\x02\0\x05\x12\x03C\x0b\x11\n\x0c\n\x05\x04\x03\x02\
+    \0\x01\x12\x03C\x12\x1e\n\x0c\n\x05\x04\x03\x02\0\x03\x12\x03C!\"\n\x1e\
+    \n\x04\x04\x03\x02\x01\x12\x03F\x02#\x1a\x11\x20player2's\x20bids.\n\n\
+    \x0c\n\x05\x04\x03\x02\x01\x04\x12\x03F\x02\n\n\x0c\n\x05\x04\x03\x02\
+    \x01\x05\x12\x03F\x0b\x11\n\x0c\n\x05\x04\x03\x02\x01\x01\x12\x03F\x12\
+    \x1e\n\x0c\n\x05\x04\x03\x02\x01\x03\x12\x03F!\"\n*\n\x04\x04\x03\x02\
+    \x02\x12\x03I\x02%\x1a\x1d\x20Who\x20the\x20receiving\x20player\x20is\n\
+    \n\x0c\n\x05\x04\x03\x02\x02\x04\x12\x03I\x02\n\n\x0c\n\x05\x04\x03\x02\
+    \x02\x05\x12\x03I\x0b\x11\n\x0c\n\x05\x04\x03\x02\x02\x01\x12\x03I\x12\
+    \x20\n\x0c\n\x05\x04\x03\x02\x02\x03\x12\x03I#$\n#\n\x04\x04\x03\x02\x03\
+    \x12\x03L\x02!\x1a\x16\x20Where\x20is\x20the\x20bottle?\n\n\x0c\n\x05\
+    \x04\x03\x02\x03\x04\x12\x03L\x02\n\n\x0c\n\x05\x04\x03\x02\x03\x05\x12\
+    \x03L\x0b\x11\n\x0c\n\x05\x04\x03\x02\x03\x01\x12\x03L\x12\x1c\n\x0c\n\
+    \x05\x04\x03\x02\x03\x03\x12\x03L\x1f\x20\n(\n\x04\x04\x03\x02\x04\x12\
+    \x03O\x02!\x1a\x1b\x20Current\x20player\x20money\x20left\n\n\x0c\n\x05\
+    \x04\x03\x02\x04\x04\x12\x03O\x02\n\n\x0c\n\x05\x04\x03\x02\x04\x05\x12\
+    \x03O\x0b\x11\n\x0c\n\x05\x04\x03\x02\x04\x01\x12\x03O\x12\x1c\n\x0c\n\
+    \x05\x04\x03\x02\x04\x03\x12\x03O\x1f\x20\n\n\n\x02\x04\x04\x12\x04S\0U\
+    \x01\n\n\n\x03\x04\x04\x01\x12\x03S\x08\x14\n\x0b\n\x04\x04\x04\x02\0\
+    \x12\x03T\x02\"\n\x0c\n\x05\x04\x04\x02\0\x04\x12\x03T\x02\n\n\x0c\n\x05\
+    \x04\x04\x02\0\x05\x12\x03T\x0b\x11\n\x0c\n\x05\x04\x04\x02\0\x01\x12\
+    \x03T\x12\x1d\n\x0c\n\x05\x04\x04\x02\0\x03\x12\x03T\x20!\n\n\n\x02\x04\
+    \x05\x12\x04W\0Y\x01\n\n\n\x03\x04\x05\x01\x12\x03W\x08\x13\n\x0b\n\x04\
+    \x04\x05\x02\0\x12\x03X\x02\x1c\n\x0c\n\x05\x04\x05\x02\0\x04\x12\x03X\
+    \x02\n\n\x0c\n\x05\x04\x05\x02\0\x05\x12\x03X\x0b\x11\n\x0c\n\x05\x04\
+    \x05\x02\0\x01\x12\x03X\x12\x17\n\x0c\n\x05\x04\x05\x02\0\x03\x12\x03X\
+    \x1a\x1b\n\n\n\x02\x04\x06\x12\x04[\0]\x01\n\n\n\x03\x04\x06\x01\x12\x03\
+    [\x08\x11\n\x0b\n\x04\x04\x06\x02\0\x12\x03\\\x02\x1d\n\x0c\n\x05\x04\
+    \x06\x02\0\x04\x12\x03\\\x02\n\n\x0c\n\x05\x04\x06\x02\0\x05\x12\x03\\\
+    \x0b\x11\n\x0c\n\x05\x04\x06\x02\0\x01\x12\x03\\\x12\x18\n\x0c\n\x05\x04\
+    \x06\x02\0\x03\x12\x03\\\x1b\x1c\n\n\n\x02\x04\x07\x12\x04_\0a\x01\n\n\n\
+    \x03\x04\x07\x01\x12\x03_\x08\x12\n\x0b\n\x04\x04\x07\x02\0\x12\x03`\x02\
+    \x1d\n\x0c\n\x05\x04\x07\x02\0\x04\x12\x03`\x02\n\n\x0c\n\x05\x04\x07\
+    \x02\0\x05\x12\x03`\x0b\x11\n\x0c\n\x05\x04\x07\x02\0\x01\x12\x03`\x12\
+    \x18\n\x0c\n\x05\x04\x07\x02\0\x03\x12\x03`\x1b\x1c\n\n\n\x02\x04\x08\
+    \x12\x04c\0o\x01\n\n\n\x03\x04\x08\x01\x12\x03c\x08\x11\n\x0c\n\x04\x04\
+    \x08\x04\0\x12\x04e\x02h\x03\n\x0c\n\x05\x04\x08\x04\0\x01\x12\x03e\x07\
+    \x16\n+\n\x06\x04\x08\x04\0\x02\0\x12\x03f\x04\x0c\"\x1c\x20If\x20one\
+    \x20player\x20won\x20outright\n\n\x0e\n\x07\x04\x08\x04\0\x02\0\x01\x12\
+    \x03f\x04\x07\n\x0e\n\x07\x04\x08\x04\0\x02\0\x02\x12\x03f\n\x0b\n2\n\
+    \x06\x04\x08\x04\0\x02\x01\x12\x03g\x04\r\"#\x20If\x20a\x20player\x20won\
+    \x20by\x20draw\x20advantage\n\n\x0e\n\x07\x04\x08\x04\0\x02\x01\x01\x12\
+    \x03g\x04\x08\n\x0e\n\x07\x04\x08\x04\0\x02\x01\x02\x12\x03g\x0b\x0c\n\
+    \x0b\n\x04\x04\x08\x02\0\x12\x03j\x02#\n\x0c\n\x05\x04\x08\x02\0\x04\x12\
+    \x03j\x02\n\n\x0c\n\x05\x04\x08\x02\0\x05\x12\x03j\x0b\x11\n\x0c\n\x05\
+    \x04\x08\x02\0\x01\x12\x03j\x12\x1e\n\x0c\n\x05\x04\x08\x02\0\x03\x12\
+    \x03j!\"\n\x0b\n\x04\x04\x08\x02\x01\x12\x03k\x02#\n\x0c\n\x05\x04\x08\
+    \x02\x01\x04\x12\x03k\x02\n\n\x0c\n\x05\x04\x08\x02\x01\x05\x12\x03k\x0b\
+    \x11\n\x0c\n\x05\x04\x08\x02\x01\x01\x12\x03k\x12\x1e\n\x0c\n\x05\x04\
+    \x08\x02\x01\x03\x12\x03k!\"\n\x0b\n\x04\x04\x08\x02\x02\x12\x03l\x02\"\
+    \n\x0c\n\x05\x04\x08\x02\x02\x04\x12\x03l\x02\n\n\x0c\n\x05\x04\x08\x02\
+    \x02\x05\x12\x03l\x0b\x11\n\x0c\n\x05\x04\x08\x02\x02\x01\x12\x03l\x12\
+    \x1d\n\x0c\n\x05\x04\x08\x02\x02\x03\x12\x03l\x20!\n\x0b\n\x04\x04\x08\
+    \x02\x03\x12\x03m\x02+\n\x0c\n\x05\x04\x08\x02\x03\x04\x12\x03m\x02\n\n\
+    \x0c\n\x05\x04\x08\x02\x03\x06\x12\x03m\x0b\x1a\n\x0c\n\x05\x04\x08\x02\
+    \x03\x01\x12\x03m\x1b&\n\x0c\n\x05\x04\x08\x02\x03\x03\x12\x03m)*\
 ";
 
 /// `FileDescriptorProto` object which was a source for this generated file
@@ -2024,7 +2426,7 @@ pub fn file_descriptor() -> &'static ::protobuf::reflect::FileDescriptor {
     file_descriptor.get(|| {
         let generated_file_descriptor = generated_file_descriptor_lazy.get(|| {
             let mut deps = ::std::vec::Vec::with_capacity(0);
-            let mut messages = ::std::vec::Vec::with_capacity(8);
+            let mut messages = ::std::vec::Vec::with_capacity(9);
             messages.push(ServerRequest::generated_message_descriptor_data());
             messages.push(GameEnd::generated_message_descriptor_data());
             messages.push(GameStart::generated_message_descriptor_data());
@@ -2033,9 +2435,11 @@ pub fn file_descriptor() -> &'static ::protobuf::reflect::FileDescriptor {
             messages.push(BidResponse::generated_message_descriptor_data());
             messages.push(BidReject::generated_message_descriptor_data());
             messages.push(AuthReject::generated_message_descriptor_data());
-            let mut enums = ::std::vec::Vec::with_capacity(2);
+            messages.push(BidResult::generated_message_descriptor_data());
+            let mut enums = ::std::vec::Vec::with_capacity(3);
             enums.push(server_request::MsgType::generated_enum_descriptor_data());
             enums.push(game_end::GameResult::generated_enum_descriptor_data());
+            enums.push(bid_result::RoundResultType::generated_enum_descriptor_data());
             ::protobuf::reflect::GeneratedFileDescriptor::new_generated(
                 file_descriptor_proto(),
                 deps,

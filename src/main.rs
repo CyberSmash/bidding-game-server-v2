@@ -51,7 +51,8 @@ mod error;
 
 use error::BidError;
 use crate::Comms::ServerRequest;
-use crate::protos::Comms::GameStart;
+use crate::protos::Comms::bid_result::RoundResultType;
+//use crate::protos::Comms::{GameStart, ServerRequest_MsgType};
 use crate::protos::Comms::server_request::MsgType;
 //use std::alloc::Global;
 
@@ -431,20 +432,29 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
             draw_advantage = !draw_advantage;
         }
 
-        let bid_result = format!("result {}/{}\n", bid_a, bid_b);
+        let mut bid_result = ServerRequest::new();
+        bid_result.set_msgType(MsgType::BID_RESULT);
+        let mut br: Comms::BidResult = Comms::BidResult::new();
+        br.set_player_a_bid(bid_a);
+        br.set_player_b_bid(bid_b);
+        br.set_result_type(if bid_a != bid_b { RoundResultType::WIN} else {RoundResultType::DRAW});
+        bid_result.bidResult = MessageField::some(br);
 
-        match stream_a.write_all(bid_result.as_bytes()).await {
+        match send_proto_to_client(stream_a, &bid_result).await {
             Ok(_) => {}
-            Err(_) => {
+            Err(e) => {
+                println!("Player {} has disconnected: {:?}", name_a, e);
                 return gr_a_abandoned;
             }
         }
 
-        match stream_b.write_all(bid_result.as_bytes()).await {
+        match send_proto_to_client(stream_b, &bid_result).await {
             Ok(_) => {}
-            Err(_) => {
+            Err(e) => {
+                println!("Player {} has disconnected {:?}", name_a, e);
                 return gr_b_abandoned;
             }
+
         }
 
 
