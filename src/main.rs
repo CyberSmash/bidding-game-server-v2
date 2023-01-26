@@ -20,10 +20,11 @@ use std::{
 use std::error::Error;
 use std::fmt::Formatter;
 use std::io::{BufWriter, ErrorKind};
+use std::net::Shutdown;
 use std::num::ParseIntError;
 //use std::net::TcpStream;
 use std::time::Duration;
-use protobuf::{Message, MessageField};
+use protobuf::{EnumOrUnknown, Message, MessageField};
 use crate::mpsc::SendError;
 mod protos;
 
@@ -51,6 +52,7 @@ mod error;
 use error::BidError;
 use crate::Comms::ServerRequest;
 use crate::protos::Comms::GameStart;
+use crate::protos::Comms::server_request::MsgType;
 //use std::alloc::Global;
 
 enum Event {
@@ -108,6 +110,7 @@ struct GMPlayer {
 }
 
 type SomeResult<T> = std::result::Result<T, BidError>;
+
 
 fn get_player_info_for_game(players: &mut HashMap<String, Player>, player_name: &String) -> Option<GMPlayer> {
     return match players.entry(player_name.clone())
@@ -178,12 +181,33 @@ async fn send_proto_to_client(stream: &mut TcpStream, msg: &Comms::ServerRequest
 
 }
 
+async fn send_proto_to_client_by_name(players: &mut HashMap<String, Player>, player_name: &String, msg: Comms::ServerRequest) -> std::result::Result<(), BidError> {
+    return match players.entry(player_name.to_string()) {
+        Entry::Occupied(mut player_entry) => {
+            let player = player_entry.get_mut();
+            send_proto_to_client(&mut player.stream, &msg).await?;
+            Ok(())
+        }
+        Entry::Vacant(_) => {
+            println!("I can't find the player {} to send a message to.", player_name);
+            Err(BidError::PlayerNotFoundByName)
+        }
+    }
+}
+
+
 async fn read_varint_from_stream(mut stream: &TcpStream) -> std::result::Result<i32, BidError> {
     let mut result: i32 = 0;
     let mut shift = 0;
     let mut buffer = vec![0u8; 1];
     loop {
-        stream.read_exact(&mut buffer).await.map_err(|_| BidError::ErrorOnRead)?;
+        match async_std::io::timeout(SOCKET_READ_TIMEOUT, stream.read_exact(&mut buffer)).await
+        {
+            Ok(_) => {}
+            Err(e) => {
+                return Err(BidError::ErrorOnRead);
+            }
+        };
         result |= ((buffer[0] & 0x7F) << shift) as i32;
         shift += 7;
 
@@ -195,9 +219,9 @@ async fn read_varint_from_stream(mut stream: &TcpStream) -> std::result::Result<
 }
 
 
-async fn read_server_request(mut stream: &TcpStream) -> std::result::Result<Comms::ServerRequest, BidError> {
+async fn read_proto_from_client(mut stream: &TcpStream) -> std::result::Result<Comms::ServerRequest, BidError> {
     // Get the size of the data first.
-    let mut num_bytes = match read_varint_from_stream(stream).await {
+    let num_bytes = match read_varint_from_stream(stream).await {
         Ok(bytes) => {bytes}
         Err(e) => {
             return match e {
@@ -215,15 +239,21 @@ async fn read_server_request(mut stream: &TcpStream) -> std::result::Result<Comm
     };
 
     if num_bytes <= 0 {
+        println!("The number of bytes in the var int is strange: {}", num_bytes);
         return Err(BidError::ErrorOnRead);
     }
 
     println!("Expecting message of size {}", num_bytes);
     let mut raw_data = vec![0u8; num_bytes as usize];
 
-
     // Read in the bytes from the stream
-    stream.read_exact(&mut raw_data).await.map_err(|_| BidError::ErrorOnRead);
+    match async_std::io::timeout(SOCKET_READ_TIMEOUT, stream.read_exact(&mut raw_data)).await {
+        Ok(_) => {}
+        Err(_) => {
+            println!("Timed out waiting on {} bytes from client.", num_bytes);
+            return Err(BidError::ErrorOnRead);
+        }
+    };
 
     println!("Message received.");
 
@@ -237,10 +267,14 @@ async fn read_server_request(mut stream: &TcpStream) -> std::result::Result<Comm
 
 async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> Option<u32> {
     let mut error_count = 0;
+    let mut bad_bid = ServerRequest::new();
+    let mut ack_bid = ServerRequest::new();
+    ack_bid.set_msgType(MsgType::ACK);
+    bad_bid.set_msgType(MsgType::BID_REJECT);
     while error_count < 3 {
         let mut msg = Comms::ServerRequest::new();
         msg.set_msgType(Comms::server_request::MsgType::BID_REQUEST);
-        //send_to_client("bid\n", stream).await;
+
         match send_proto_to_client(stream, &msg).await {
             Ok(_) => {}
             Err(e) => {
@@ -248,35 +282,46 @@ async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> 
                 return None;
             }
         }
-        let client_response = match async_std::io::timeout(SOCKET_READ_TIMEOUT, read_from_client(stream)).await {
-            Ok(response_str) => { response_str }
+        let bid_num = match read_proto_from_client(stream).await {
+            Ok(response_proto) => {
+                let mut bid_amount = 0;
+                if response_proto.msgType() == MsgType::BID_RESPONSE {
+                    bid_amount = match response_proto.bidResponse.money {
+                        None => {
+                            println!("Could not get the money field from our bid response.");
+                            error_count += 1;
+                            continue;
+                        }
+                        Some(amount) => {
+                            amount
+                        }
+                    };
+                }
+                bid_amount
+            }
             Err(_) => {
                 error_count += 1;
-                send_to_client("timeout\n", stream).await;
+                println!("Player timed out waiting for a bid. They have {} chances left", 3 - error_count);
                 continue;
             }
         };
-
-         let bid_num = match client_response.parse::<u32>() {
-            Ok(bid) => {
-                bid
-            }
-            Err(_) => {
-                error_count += 1;
-                send_to_client("badbid\n", stream).await;
-                continue;
-            }
-         };
 
         // You can't bid more than you have, and you cannot bid 0 unless you only
         // have 0 to bid.
         if (bid_num > player_money_left) || (bid_num == 0 && player_money_left > 0) {
             error_count += 1;
-            send_to_client("badbid\n", stream).await;
+            //send_to_client("badbid\n", stream).await;
+            match send_proto_to_client(stream, &bad_bid).await {
+                Ok(_) => {}
+                Err(e) => {
+                    println!("Error sending proto to the client");
+                    return None;
+                }
+            }
             continue;
         }
         else {
-            send_to_client("ok\n", stream).await;
+            send_proto_to_client(stream, &ack_bid).await;
             return Some(bid_num);
         }
     }
@@ -324,7 +369,6 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
     send_proto_to_client(stream_a, &start_msg).await;
     send_proto_to_client(stream_b, &start_msg).await;
 
-
     for round in 0..MAX_GAME_ROUNDS {
 
         if bottle_position == BOTTLE_MIN || bottle_position == BOTTLE_MAX {
@@ -340,20 +384,9 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
 
             return gr;
         }
-        let pos_msg = format!("pos {}\n", bottle_position);
 
-        match stream_a.write_all(pos_msg.as_bytes()).await {
-            Ok(_) => {}
-            Err(_) => {
-                return gr_a_abandoned;
-            }
-        }
-        match stream_b.write_all(pos_msg.as_bytes()).await {
-            Ok(_) => {}
-            Err(_) => {
-                return gr_b_abandoned;
-            }
-        }
+
+        // @TODO We should provide a position at this point.
 
 
         let bid_a = match get_bid_from_client(stream_a,
@@ -455,6 +488,8 @@ async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Eve
                     }
                 }
                 pm_sender.send(Event::GameOver { result: game_result }).await;
+                thread::sleep(gm_backoff);
+                pm_sender.send(Event::NeedPlayers {id}).await;
 
             }
             Event::Good {id: i32} => {}
@@ -554,15 +589,22 @@ async fn player_manager(mut sender: Sender<Event>, mut receiver: Receiver<Event>
                 match result.status {
                     GameStatus::Abandoned => {
                         println!("The game had to be abandoned due to {}", result.loser);
+                        let mut abort_msg = ServerRequest::new();
+                        abort_msg.set_msgType(MsgType::GAME_ABORT);
+
+                        println!("The player manager has been told that {} disconnected.", result.loser);
+                        players[&result.loser].stream.shutdown(Shutdown::Both);
+                        send_proto_to_client_by_name(&mut players, &result.winner, abort_msg).await;
+
+
+                        players.remove(&result.loser);
                     }
                     GameStatus::Completed => {
                         println!("The game completed with {} as the winner, and {} as the loser",
                                  result.winner,
                                  result.loser)
                     }
-                    GameStatus::Draw => {
-
-                    }
+                    GameStatus::Draw => {}
                     GameStatus::Disconnect => {}
                 }
                 if let Some(peer) = players.get_mut(&result.winner) {
@@ -619,7 +661,7 @@ async fn connection_loop(mut stream: TcpStream, mut pm_sender: Sender<Event>) ->
         Some(line) => line?,
     };
     */
-    let login_name = match read_server_request(&mut stream).await {
+    let login_name = match read_proto_from_client(&mut stream).await {
         Ok(resp) => {resp}
         Err(e) => {
             println!("Error: {}", e);
