@@ -412,15 +412,17 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
                 bid
             }
         };
-
+        let mut winner_name = String::new();
         if bid_a > bid_b {
             player_a_money_left -= bid_a;
             bottle_position += 1;
+            winner_name = name_a.clone();
 
         }
         else if bid_a < bid_b {
             player_b_money_left -= bid_b;
             bottle_position -= 1;
+            winner_name = name_b.clone();
         }
         else {
             if draw_advantage {
@@ -437,6 +439,7 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
         let mut br: Comms::BidResult = Comms::BidResult::new();
         br.set_player_a_bid(bid_a);
         br.set_player_b_bid(bid_b);
+        br.set_winner_name(winner_name);
         br.set_result_type(if bid_a != bid_b { RoundResultType::WIN} else {RoundResultType::DRAW});
         bid_result.bidResult = MessageField::some(br);
 
