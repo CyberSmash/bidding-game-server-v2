@@ -3,29 +3,24 @@ use async_std::{
     net::{TcpListener, TcpStream, ToSocketAddrs},
     prelude::*,
     task,
-    future::TimeoutError,
 };
 
-use std::{thread, time};
+use std::{thread};
 
-use futures::{stream::FuturesUnordered, StreamExt};
+use futures::{join, StreamExt};
 
-use std::fmt;
 use futures::channel::mpsc;
 use futures::sink::SinkExt;
 use std::{
     collections::hash_map::{HashMap, Entry},
-    sync::Arc,
 };
-use std::error::Error;
-use std::fmt::Formatter;
-use std::io::{BufWriter, ErrorKind};
+
 use std::net::Shutdown;
-use std::num::ParseIntError;
-//use std::net::TcpStream;
+use chrono::{Utc};
 use std::time::Duration;
-use protobuf::{EnumOrUnknown, Message, MessageField};
-use crate::mpsc::SendError;
+use protobuf::{Message, MessageField};
+
+use rand::{rngs::StdRng, Rng, SeedableRng};
 mod protos;
 
 use protos::Comms;
@@ -37,8 +32,8 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>
 const SOCKET_READ_TIMEOUT: Duration = Duration::from_millis(500);
 const CLIENT_ERROR_MAX: u32 = 3;
 const MAX_GAME_ROUNDS: u32 = 10;
-const BOTTLE_MIN: i32 = -5;
-const BOTTLE_MAX: i32 = 5;
+const BOTTLE_MIN: u32 = 0;
+const BOTTLE_MAX: u32 = 10;
 
 enum GameStatus {
     Abandoned,
@@ -52,9 +47,7 @@ mod error;
 use error::BidError;
 use crate::Comms::ServerRequest;
 use crate::protos::Comms::bid_result::RoundResultType;
-//use crate::protos::Comms::{GameStart, ServerRequest_MsgType};
 use crate::protos::Comms::server_request::MsgType;
-//use std::alloc::Global;
 
 enum Event {
     NewPlayer {
@@ -102,6 +95,7 @@ struct Player {
     losses: u64,
     in_game: bool,
     stream: TcpStream,
+    player_cooldown: chrono::DateTime<Utc>
 }
 
 // Only the info that the Game Master needs of a player.
@@ -114,6 +108,7 @@ type SomeResult<T> = std::result::Result<T, BidError>;
 
 
 fn get_player_info_for_game(players: &mut HashMap<String, Player>, player_name: &String) -> Option<GMPlayer> {
+
     return match players.entry(player_name.clone())
     {
         Entry::Occupied(mut ent) => {
@@ -126,7 +121,7 @@ fn get_player_info_for_game(players: &mut HashMap<String, Player>, player_name: 
 }
 
 async fn read_from_client(stream: &TcpStream) -> std::io::Result<String> {
-    let mut reader = BufReader::new(stream.clone());
+    let reader = BufReader::new(stream.clone());
     let mut lines = reader.lines();
     let response = match lines.next().await {
         None => {
@@ -170,9 +165,7 @@ async fn send_proto_to_client(stream: &mut TcpStream, msg: &Comms::ServerRequest
     };
 
     match stream.write_all(final_msg.as_slice()).await.map_err(|_| BidError::ErrorOnSend) {
-        Ok(_) => {
-            println!("[+] Sending message of size {} bytes", final_msg.len());
-        }
+        Ok(_) => {}
         Err(e) => {
             println!("[-] Error writing all.");
             return Err(e);
@@ -240,11 +233,9 @@ async fn read_proto_from_client(mut stream: &TcpStream) -> std::result::Result<C
     };
 
     if num_bytes <= 0 {
-        println!("The number of bytes in the var int is strange: {}", num_bytes);
         return Err(BidError::ErrorOnRead);
     }
 
-    println!("Expecting message of size {}", num_bytes);
     let mut raw_data = vec![0u8; num_bytes as usize];
 
     // Read in the bytes from the stream
@@ -256,17 +247,12 @@ async fn read_proto_from_client(mut stream: &TcpStream) -> std::result::Result<C
         }
     };
 
-    println!("Message received.");
-
     let server_request =  Comms::ServerRequest::parse_from_bytes(raw_data.as_slice()).map_err(|_| BidError::ProtoParseError)?;
-
-    println!("Returning server request");
-
-
     Ok(server_request)
 }
 
 async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> Option<u32> {
+
     let mut error_count = 0;
     let mut bad_bid = ServerRequest::new();
     let mut ack_bid = ServerRequest::new();
@@ -329,12 +315,43 @@ async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> 
     None
 }
 
+fn make_start_proto(player_a_name: String, player_a_money: u32, player_b_name: String, player_b_money: u32) -> ServerRequest
+{
+    let mut start_msg = ServerRequest::new();
+    start_msg.set_msgType(Comms::server_request::MsgType::GAME_START);
+
+    let mut gs = Comms::GameStart::new();
+    //start_msg.
+
+    gs.set_player1_name(player_a_name);
+    gs.set_player2_name(player_b_name);
+    gs.set_player1_start_money(100);
+    gs.set_player2_start_money(100);
+    start_msg.gameStart = MessageField::some(gs);
+    return start_msg;
+}
+
+
+fn make_round_start_proto(round_num: u32, player_a_money: u32, player_b_money: u32, bottle_pos: u32) -> ServerRequest {
+    let mut round_msg = ServerRequest::new();
+    round_msg.set_msgType(MsgType::ROUND_START);
+    let mut round_start = Comms::RoundStart::new();
+    round_start.set_round_num(round_num);
+    round_start.set_player_a_money(player_a_money);
+    round_start.set_player_b_money(player_b_money);
+    round_start.set_bottle_pos(bottle_pos);
+
+    round_msg.roundStart = MessageField::some(round_start);
+
+    return round_msg;
+}
+
 
 async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
                   stream_b: &mut TcpStream, name_b: &String) -> GameResult {
     let mut player_a_money_left = 100;
     let mut player_b_money_left = 100;
-    let mut bottle_position: i32 = 0;
+    let mut bottle_position: u32 = 5;
     let mut draw_advantage = true;
     let gr_a_abandoned = GameResult {
         id: id,
@@ -343,34 +360,48 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
         status: GameStatus::Abandoned
     };
     let gr_b_abandoned = GameResult {
-        id: id,
+        id,
         winner: name_a.clone(),
         loser: name_b.clone(),
         status: GameStatus::Abandoned
     };
     let mut gr = GameResult {
-        id: id,
+        id,
         winner: name_a.clone(),
         loser: name_b.clone(),
         status: GameStatus::Draw,
     };
-    //let start_msg = format!("start {}/{} {}/{}\n", name_a, player_a_money_left, name_b, player_b_money_left);
-    let mut start_msg = ServerRequest::new();
-    start_msg.set_msgType(Comms::server_request::MsgType::GAME_START);
 
-    let mut gs = Comms::GameStart::new();
-    //start_msg.
+    let start_msg = make_start_proto(name_a.clone(),
+                                     player_b_money_left,
+                                     name_b.clone(),
+                                     player_b_money_left);
 
-    gs.set_player1_name(name_a.clone());
-    gs.set_player2_name(name_b.clone());
-    gs.set_player1_start_money(100);
-    gs.set_player2_start_money(100);
-    start_msg.gameStart = MessageField::some(gs);
 
-    send_proto_to_client(stream_a, &start_msg).await;
-    send_proto_to_client(stream_b, &start_msg).await;
+    let results = join!(send_proto_to_client(stream_a, &start_msg),
+                                             send_proto_to_client(stream_b, &start_msg));
+    match results.0 {
+        Ok(_) => {}
+        Err(_) => { return gr_a_abandoned; }
+    }
+    match results.1 {
+        Ok(_) => {}
+        Err(_) => { return gr_b_abandoned; }
+    }
 
     for round in 0..MAX_GAME_ROUNDS {
+        let round_start_msg = make_round_start_proto(round + 1, player_a_money_left, player_b_money_left, bottle_position);
+
+        let results = join!(send_proto_to_client(stream_a, &round_start_msg), send_proto_to_client(stream_b, &round_start_msg));
+
+        match results.0  {
+            Ok(_) => {}
+            Err(_) => { return gr_a_abandoned; }
+        }
+        match results.1 {
+            Ok(_) => {}
+            Err(_) => { return gr_b_abandoned; }
+        }
 
         if bottle_position == BOTTLE_MIN || bottle_position == BOTTLE_MAX {
             gr.status = GameStatus::Completed;
@@ -388,10 +419,12 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
 
 
         // @TODO We should provide a position at this point.
+        let bids = join!(get_bid_from_client(stream_a, player_a_money_left),
+            get_bid_from_client(stream_b, player_b_money_left));
 
 
-        let bid_a = match get_bid_from_client(stream_a,
-                                              player_a_money_left).await {
+
+        let bid_a = match bids.0 {
             None => {
                 println!("Could not get bid from {}. Abandon game.", name_a);
                 return gr_a_abandoned;
@@ -401,8 +434,7 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
             }
         };
 
-        let bid_b = match get_bid_from_client(stream_b,
-                                              player_b_money_left).await
+        let bid_b = match bids.1
         {
             None => {
                 println!("Could not get bid from {}. Abandon game.", name_b);
@@ -412,6 +444,8 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
                 bid
             }
         };
+
+
         let mut winner_name = String::new();
         if bid_a > bid_b {
             player_a_money_left -= bid_a;
@@ -485,15 +519,40 @@ async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Eve
                         println!("It looks like player {} disconnected before we could finish the game.", game_result.loser);
                     }
                     GameStatus::Completed => {
-                        let winner_message = format!("final win {}", game_result.winner);
-                        stream_a.write_all(winner_message.as_bytes()).await;
-                        stream_b.write_all(winner_message.as_bytes()).await;
+                        let mut winner_message = ServerRequest::new();
+                        let mut loser_message = ServerRequest::new();
+
+
+                        winner_message.set_msgType(MsgType::GAME_END);
+                        loser_message.set_msgType(MsgType::GAME_END);
+
+                        // Make a game end message.
+                        let mut ge = Comms::GameEnd::new();
+                        ge.set_result(Comms::game_end::GameResult::WIN);
+
+                        // Give the cloned version to the winner message.
+                        winner_message.gameEnd = MessageField::some(ge.clone());
+
+                        // Reuse the game end message for the loss message.
+                        ge.set_result(Comms::game_end::GameResult::LOSS);
+                        loser_message.gameEnd = MessageField::some(ge);
+
+                        if game_result.winner == name_a {
+                            send_proto_to_client(&mut stream_a, &winner_message).await;
+                            send_proto_to_client(&mut stream_b, &loser_message).await;
+                        }
+
 
                     }
                     GameStatus::Draw => {
-                        let draw_msg = "final draw";
-                        stream_a.write_all(draw_msg.as_bytes()).await;
-                        stream_b.write_all(draw_msg.as_bytes()).await;
+                        let mut draw_msg = ServerRequest::new();
+                        draw_msg.set_msgType(MsgType::GAME_END);
+                        let mut ge = Comms::GameEnd::new();
+                        ge.set_result(Comms::game_end::GameResult::DRAW);
+                        draw_msg.gameEnd = MessageField::some(ge);
+
+                        send_proto_to_client(&mut stream_a, &draw_msg).await;
+                        send_proto_to_client(&mut stream_b, &draw_msg).await;
 
                     }
                     GameStatus::Disconnect => {
@@ -519,8 +578,9 @@ async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Eve
 fn get_free_players(players: &HashMap<String, Player>) -> Vec<String>
 {
     let mut indexes: Vec<String> = vec!();
+    let mut current_time = Utc::now();
     for (name, player) in players.into_iter() {
-        if !player.in_game {
+        if !player.in_game && player.player_cooldown < current_time {
             indexes.push(name.clone());
         }
     }
@@ -529,7 +589,7 @@ fn get_free_players(players: &HashMap<String, Player>) -> Vec<String>
 
 async fn handle_need_players(players: &mut HashMap<String, Player>, gm_sender: &mut Sender<Event>) -> bool {
     let free_players = get_free_players(&players);
-
+    let current_time = Utc::now();
     if free_players.len() < 2 {
         match gm_sender.send(Event::Bad).await
         {
@@ -552,7 +612,6 @@ async fn handle_need_players(players: &mut HashMap<String, Player>, gm_sender: &
     {
         None => {
             println!("I errored out trying to find a player. The player {} was suddenly not found.", free_players[1]);
-            gm_sender.send(Event::Bad).await;
             return false;
         }
         Some(p) => {p}
@@ -577,6 +636,9 @@ async fn handle_need_players(players: &mut HashMap<String, Player>, gm_sender: &
 }
 
 async fn player_manager(mut sender: Sender<Event>, mut receiver: Receiver<Event>) {
+
+
+    let mut rng = StdRng::seed_from_u64(Utc::now().timestamp() as u64);
     let mut players: HashMap<String, Player> = HashMap::new();
     let mut game_comms: HashMap<u32, Sender<Event>> = HashMap::new();
     //let  mut game_masters = FuturesUnordered::new();
@@ -608,8 +670,6 @@ async fn player_manager(mut sender: Sender<Event>, mut receiver: Receiver<Event>
                         println!("The player manager has been told that {} disconnected.", result.loser);
                         players[&result.loser].stream.shutdown(Shutdown::Both);
                         send_proto_to_client_by_name(&mut players, &result.winner, abort_msg).await;
-
-
                         players.remove(&result.loser);
                     }
                     GameStatus::Completed => {
@@ -621,11 +681,16 @@ async fn player_manager(mut sender: Sender<Event>, mut receiver: Receiver<Event>
                     GameStatus::Disconnect => {}
                 }
                 if let Some(peer) = players.get_mut(&result.winner) {
+                    println!("Player {} has returned to the pool.", result.winner);
+                    peer.player_cooldown = Utc::now() + chrono::Duration::seconds(rng.gen_range(1..10));
                     peer.in_game = false;
                     peer.wins += 1;
+
                 }
                 if let Some(peer) = players.get_mut(&result.loser)
                 {
+                    println!("Player {} has been returned to the pool.", result.loser);
+                    peer.player_cooldown = Utc::now() + chrono::Duration::seconds(rng.gen_range(1..10));
                     peer.in_game = false;
                     peer.losses += 1;
                 }
@@ -700,7 +765,8 @@ async fn connection_loop(mut stream: TcpStream, mut pm_sender: Sender<Event>) ->
         wins: 0,
         losses: 0,
         in_game: false,
-        stream
+        stream,
+        player_cooldown: Utc::now()
     };
     pm_sender.send(Event::NewPlayer {player: p}).await;
 

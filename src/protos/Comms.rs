@@ -49,6 +49,8 @@ pub struct ServerRequest {
     pub authReject: ::protobuf::MessageField<AuthReject>,
     // @@protoc_insertion_point(field:ServerRequest.gameStart)
     pub gameStart: ::protobuf::MessageField<GameStart>,
+    // @@protoc_insertion_point(field:ServerRequest.roundStart)
+    pub roundStart: ::protobuf::MessageField<RoundStart>,
     // special fields
     // @@protoc_insertion_point(special_field:ServerRequest.special_fields)
     pub special_fields: ::protobuf::SpecialFields,
@@ -88,7 +90,7 @@ impl ServerRequest {
     }
 
     fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
-        let mut fields = ::std::vec::Vec::with_capacity(9);
+        let mut fields = ::std::vec::Vec::with_capacity(10);
         let mut oneofs = ::std::vec::Vec::with_capacity(0);
         fields.push(::protobuf::reflect::rt::v2::make_option_accessor::<_, _>(
             "msgType",
@@ -134,6 +136,11 @@ impl ServerRequest {
             "gameStart",
             |m: &ServerRequest| { &m.gameStart },
             |m: &mut ServerRequest| { &mut m.gameStart },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_message_field_accessor::<_, RoundStart>(
+            "roundStart",
+            |m: &ServerRequest| { &m.roundStart },
+            |m: &mut ServerRequest| { &mut m.roundStart },
         ));
         ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<ServerRequest>(
             "ServerRequest",
@@ -190,6 +197,11 @@ impl ::protobuf::Message for ServerRequest {
                 return false;
             }
         };
+        for v in &self.roundStart {
+            if !v.is_initialized() {
+                return false;
+            }
+        };
         true
     }
 
@@ -222,6 +234,9 @@ impl ::protobuf::Message for ServerRequest {
                 },
                 74 => {
                     ::protobuf::rt::read_singular_message_into_field(is, &mut self.gameStart)?;
+                },
+                82 => {
+                    ::protobuf::rt::read_singular_message_into_field(is, &mut self.roundStart)?;
                 },
                 tag => {
                     ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
@@ -270,6 +285,10 @@ impl ::protobuf::Message for ServerRequest {
             let len = v.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
         }
+        if let Some(v) = self.roundStart.as_ref() {
+            let len = v.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint64_size(len) + len;
+        }
         my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
         self.special_fields.cached_size().set(my_size as u32);
         my_size
@@ -303,6 +322,9 @@ impl ::protobuf::Message for ServerRequest {
         if let Some(v) = self.gameStart.as_ref() {
             ::protobuf::rt::write_message_field_with_cached_size(9, v, os)?;
         }
+        if let Some(v) = self.roundStart.as_ref() {
+            ::protobuf::rt::write_message_field_with_cached_size(10, v, os)?;
+        }
         os.write_unknown_fields(self.special_fields.unknown_fields())?;
         ::std::result::Result::Ok(())
     }
@@ -329,6 +351,7 @@ impl ::protobuf::Message for ServerRequest {
         self.bidResult.clear();
         self.authReject.clear();
         self.gameStart.clear();
+        self.roundStart.clear();
         self.special_fields.clear();
     }
 
@@ -343,6 +366,7 @@ impl ::protobuf::Message for ServerRequest {
             bidResult: ::protobuf::MessageField::none(),
             authReject: ::protobuf::MessageField::none(),
             gameStart: ::protobuf::MessageField::none(),
+            roundStart: ::protobuf::MessageField::none(),
             special_fields: ::protobuf::SpecialFields::new(),
         };
         &instance
@@ -374,29 +398,31 @@ pub mod server_request {
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.AUTH_REQUEST)
         AUTH_REQUEST = 0,
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.AUTH_RESPONSE)
-        AUTH_RESPONSE = 8,
+        AUTH_RESPONSE = 1,
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.AUTH_REJECT)
-        AUTH_REJECT = 1,
+        AUTH_REJECT = 2,
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.BID_REQUEST)
-        BID_REQUEST = 2,
+        BID_REQUEST = 3,
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.BID_RESPONSE)
-        BID_RESPONSE = 3,
+        BID_RESPONSE = 4,
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.BID_REJECT)
-        BID_REJECT = 4,
+        BID_REJECT = 5,
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.BID_RESULT)
-        BID_RESULT = 12,
+        BID_RESULT = 6,
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.GAME_START)
-        GAME_START = 5,
+        GAME_START = 7,
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.GAME_END)
-        GAME_END = 6,
+        GAME_END = 8,
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.DISCONNECT)
-        DISCONNECT = 7,
+        DISCONNECT = 9,
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.ACK)
-        ACK = 9,
+        ACK = 10,
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.GAME_ABORT)
-        GAME_ABORT = 10,
+        GAME_ABORT = 11,
         // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.ALIVE)
-        ALIVE = 11,
+        ALIVE = 12,
+        // @@protoc_insertion_point(enum_value:ServerRequest.MsgType.ROUND_START)
+        ROUND_START = 13,
     }
 
     impl ::protobuf::Enum for MsgType {
@@ -409,18 +435,19 @@ pub mod server_request {
         fn from_i32(value: i32) -> ::std::option::Option<MsgType> {
             match value {
                 0 => ::std::option::Option::Some(MsgType::AUTH_REQUEST),
-                8 => ::std::option::Option::Some(MsgType::AUTH_RESPONSE),
-                1 => ::std::option::Option::Some(MsgType::AUTH_REJECT),
-                2 => ::std::option::Option::Some(MsgType::BID_REQUEST),
-                3 => ::std::option::Option::Some(MsgType::BID_RESPONSE),
-                4 => ::std::option::Option::Some(MsgType::BID_REJECT),
-                12 => ::std::option::Option::Some(MsgType::BID_RESULT),
-                5 => ::std::option::Option::Some(MsgType::GAME_START),
-                6 => ::std::option::Option::Some(MsgType::GAME_END),
-                7 => ::std::option::Option::Some(MsgType::DISCONNECT),
-                9 => ::std::option::Option::Some(MsgType::ACK),
-                10 => ::std::option::Option::Some(MsgType::GAME_ABORT),
-                11 => ::std::option::Option::Some(MsgType::ALIVE),
+                1 => ::std::option::Option::Some(MsgType::AUTH_RESPONSE),
+                2 => ::std::option::Option::Some(MsgType::AUTH_REJECT),
+                3 => ::std::option::Option::Some(MsgType::BID_REQUEST),
+                4 => ::std::option::Option::Some(MsgType::BID_RESPONSE),
+                5 => ::std::option::Option::Some(MsgType::BID_REJECT),
+                6 => ::std::option::Option::Some(MsgType::BID_RESULT),
+                7 => ::std::option::Option::Some(MsgType::GAME_START),
+                8 => ::std::option::Option::Some(MsgType::GAME_END),
+                9 => ::std::option::Option::Some(MsgType::DISCONNECT),
+                10 => ::std::option::Option::Some(MsgType::ACK),
+                11 => ::std::option::Option::Some(MsgType::GAME_ABORT),
+                12 => ::std::option::Option::Some(MsgType::ALIVE),
+                13 => ::std::option::Option::Some(MsgType::ROUND_START),
                 _ => ::std::option::Option::None
             }
         }
@@ -439,6 +466,7 @@ pub mod server_request {
             MsgType::ACK,
             MsgType::GAME_ABORT,
             MsgType::ALIVE,
+            MsgType::ROUND_START,
         ];
     }
 
@@ -449,21 +477,7 @@ pub mod server_request {
         }
 
         fn descriptor(&self) -> ::protobuf::reflect::EnumValueDescriptor {
-            let index = match self {
-                MsgType::AUTH_REQUEST => 0,
-                MsgType::AUTH_RESPONSE => 1,
-                MsgType::AUTH_REJECT => 2,
-                MsgType::BID_REQUEST => 3,
-                MsgType::BID_RESPONSE => 4,
-                MsgType::BID_REJECT => 5,
-                MsgType::BID_RESULT => 6,
-                MsgType::GAME_START => 7,
-                MsgType::GAME_END => 8,
-                MsgType::DISCONNECT => 9,
-                MsgType::ACK => 10,
-                MsgType::GAME_ABORT => 11,
-                MsgType::ALIVE => 12,
-            };
+            let index = *self as usize;
             Self::enum_descriptor().value_by_index(index)
         }
     }
@@ -2226,8 +2240,272 @@ pub mod bid_result {
     }
 }
 
+#[derive(PartialEq,Clone,Default,Debug)]
+// @@protoc_insertion_point(message:RoundStart)
+pub struct RoundStart {
+    // message fields
+    // @@protoc_insertion_point(field:RoundStart.round_num)
+    pub round_num: ::std::option::Option<u32>,
+    // @@protoc_insertion_point(field:RoundStart.player_a_money)
+    pub player_a_money: ::std::option::Option<u32>,
+    // @@protoc_insertion_point(field:RoundStart.player_b_money)
+    pub player_b_money: ::std::option::Option<u32>,
+    // @@protoc_insertion_point(field:RoundStart.bottle_pos)
+    pub bottle_pos: ::std::option::Option<u32>,
+    // special fields
+    // @@protoc_insertion_point(special_field:RoundStart.special_fields)
+    pub special_fields: ::protobuf::SpecialFields,
+}
+
+impl<'a> ::std::default::Default for &'a RoundStart {
+    fn default() -> &'a RoundStart {
+        <RoundStart as ::protobuf::Message>::default_instance()
+    }
+}
+
+impl RoundStart {
+    pub fn new() -> RoundStart {
+        ::std::default::Default::default()
+    }
+
+    // required uint32 round_num = 1;
+
+    pub fn round_num(&self) -> u32 {
+        self.round_num.unwrap_or(0)
+    }
+
+    pub fn clear_round_num(&mut self) {
+        self.round_num = ::std::option::Option::None;
+    }
+
+    pub fn has_round_num(&self) -> bool {
+        self.round_num.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_round_num(&mut self, v: u32) {
+        self.round_num = ::std::option::Option::Some(v);
+    }
+
+    // required uint32 player_a_money = 2;
+
+    pub fn player_a_money(&self) -> u32 {
+        self.player_a_money.unwrap_or(0)
+    }
+
+    pub fn clear_player_a_money(&mut self) {
+        self.player_a_money = ::std::option::Option::None;
+    }
+
+    pub fn has_player_a_money(&self) -> bool {
+        self.player_a_money.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_player_a_money(&mut self, v: u32) {
+        self.player_a_money = ::std::option::Option::Some(v);
+    }
+
+    // required uint32 player_b_money = 3;
+
+    pub fn player_b_money(&self) -> u32 {
+        self.player_b_money.unwrap_or(0)
+    }
+
+    pub fn clear_player_b_money(&mut self) {
+        self.player_b_money = ::std::option::Option::None;
+    }
+
+    pub fn has_player_b_money(&self) -> bool {
+        self.player_b_money.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_player_b_money(&mut self, v: u32) {
+        self.player_b_money = ::std::option::Option::Some(v);
+    }
+
+    // required uint32 bottle_pos = 4;
+
+    pub fn bottle_pos(&self) -> u32 {
+        self.bottle_pos.unwrap_or(0)
+    }
+
+    pub fn clear_bottle_pos(&mut self) {
+        self.bottle_pos = ::std::option::Option::None;
+    }
+
+    pub fn has_bottle_pos(&self) -> bool {
+        self.bottle_pos.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_bottle_pos(&mut self, v: u32) {
+        self.bottle_pos = ::std::option::Option::Some(v);
+    }
+
+    fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
+        let mut fields = ::std::vec::Vec::with_capacity(4);
+        let mut oneofs = ::std::vec::Vec::with_capacity(0);
+        fields.push(::protobuf::reflect::rt::v2::make_option_accessor::<_, _>(
+            "round_num",
+            |m: &RoundStart| { &m.round_num },
+            |m: &mut RoundStart| { &mut m.round_num },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_option_accessor::<_, _>(
+            "player_a_money",
+            |m: &RoundStart| { &m.player_a_money },
+            |m: &mut RoundStart| { &mut m.player_a_money },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_option_accessor::<_, _>(
+            "player_b_money",
+            |m: &RoundStart| { &m.player_b_money },
+            |m: &mut RoundStart| { &mut m.player_b_money },
+        ));
+        fields.push(::protobuf::reflect::rt::v2::make_option_accessor::<_, _>(
+            "bottle_pos",
+            |m: &RoundStart| { &m.bottle_pos },
+            |m: &mut RoundStart| { &mut m.bottle_pos },
+        ));
+        ::protobuf::reflect::GeneratedMessageDescriptorData::new_2::<RoundStart>(
+            "RoundStart",
+            fields,
+            oneofs,
+        )
+    }
+}
+
+impl ::protobuf::Message for RoundStart {
+    const NAME: &'static str = "RoundStart";
+
+    fn is_initialized(&self) -> bool {
+        if self.round_num.is_none() {
+            return false;
+        }
+        if self.player_a_money.is_none() {
+            return false;
+        }
+        if self.player_b_money.is_none() {
+            return false;
+        }
+        if self.bottle_pos.is_none() {
+            return false;
+        }
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
+        while let Some(tag) = is.read_raw_tag_or_eof()? {
+            match tag {
+                8 => {
+                    self.round_num = ::std::option::Option::Some(is.read_uint32()?);
+                },
+                16 => {
+                    self.player_a_money = ::std::option::Option::Some(is.read_uint32()?);
+                },
+                24 => {
+                    self.player_b_money = ::std::option::Option::Some(is.read_uint32()?);
+                },
+                32 => {
+                    self.bottle_pos = ::std::option::Option::Some(is.read_uint32()?);
+                },
+                tag => {
+                    ::protobuf::rt::read_unknown_or_skip_group(tag, is, self.special_fields.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u64 {
+        let mut my_size = 0;
+        if let Some(v) = self.round_num {
+            my_size += ::protobuf::rt::uint32_size(1, v);
+        }
+        if let Some(v) = self.player_a_money {
+            my_size += ::protobuf::rt::uint32_size(2, v);
+        }
+        if let Some(v) = self.player_b_money {
+            my_size += ::protobuf::rt::uint32_size(3, v);
+        }
+        if let Some(v) = self.bottle_pos {
+            my_size += ::protobuf::rt::uint32_size(4, v);
+        }
+        my_size += ::protobuf::rt::unknown_fields_size(self.special_fields.unknown_fields());
+        self.special_fields.cached_size().set(my_size as u32);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
+        if let Some(v) = self.round_num {
+            os.write_uint32(1, v)?;
+        }
+        if let Some(v) = self.player_a_money {
+            os.write_uint32(2, v)?;
+        }
+        if let Some(v) = self.player_b_money {
+            os.write_uint32(3, v)?;
+        }
+        if let Some(v) = self.bottle_pos {
+            os.write_uint32(4, v)?;
+        }
+        os.write_unknown_fields(self.special_fields.unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn special_fields(&self) -> &::protobuf::SpecialFields {
+        &self.special_fields
+    }
+
+    fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
+        &mut self.special_fields
+    }
+
+    fn new() -> RoundStart {
+        RoundStart::new()
+    }
+
+    fn clear(&mut self) {
+        self.round_num = ::std::option::Option::None;
+        self.player_a_money = ::std::option::Option::None;
+        self.player_b_money = ::std::option::Option::None;
+        self.bottle_pos = ::std::option::Option::None;
+        self.special_fields.clear();
+    }
+
+    fn default_instance() -> &'static RoundStart {
+        static instance: RoundStart = RoundStart {
+            round_num: ::std::option::Option::None,
+            player_a_money: ::std::option::Option::None,
+            player_b_money: ::std::option::Option::None,
+            bottle_pos: ::std::option::Option::None,
+            special_fields: ::protobuf::SpecialFields::new(),
+        };
+        &instance
+    }
+}
+
+impl ::protobuf::MessageFull for RoundStart {
+    fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
+        static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
+        descriptor.get(|| file_descriptor().message_by_package_relative_name("RoundStart").unwrap()).clone()
+    }
+}
+
+impl ::std::fmt::Display for RoundStart {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for RoundStart {
+    type RuntimeType = ::protobuf::reflect::rt::RuntimeTypeMessage<Self>;
+}
+
 static file_descriptor_proto_data: &'static [u8] = b"\
-    \n\x0bComms.proto\"\xf4\x04\n\rServerRequest\x120\n\x07msgType\x18\x01\
+    \n\x0bComms.proto\"\xb2\x05\n\rServerRequest\x120\n\x07msgType\x18\x01\
     \x20\x02(\x0e2\x16.ServerRequest.MsgTypeR\x07msgType\x12\"\n\x07gameEnd\
     \x18\x02\x20\x01(\x0b2\x08.GameEndR\x07gameEnd\x12(\n\tgameState\x18\x03\
     \x20\x01(\x0b2\n.GameStateR\tgameState\x121\n\x0cauthResponse\x18\x04\
@@ -2236,35 +2514,40 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     \x06\x20\x01(\x0b2\n.BidRejectR\tbidReject\x12(\n\tbidResult\x18\x07\x20\
     \x01(\x0b2\n.BidResultR\tbidResult\x12+\n\nauthReject\x18\x08\x20\x01(\
     \x0b2\x0b.AuthRejectR\nauthReject\x12(\n\tgameStart\x18\t\x20\x01(\x0b2\
-    \n.GameStartR\tgameStart\"\xd4\x01\n\x07MsgType\x12\x10\n\x0cAUTH_REQUES\
-    T\x10\0\x12\x11\n\rAUTH_RESPONSE\x10\x08\x12\x0f\n\x0bAUTH_REJECT\x10\
-    \x01\x12\x0f\n\x0bBID_REQUEST\x10\x02\x12\x10\n\x0cBID_RESPONSE\x10\x03\
-    \x12\x0e\n\nBID_REJECT\x10\x04\x12\x0e\n\nBID_RESULT\x10\x0c\x12\x0e\n\n\
-    GAME_START\x10\x05\x12\x0c\n\x08GAME_END\x10\x06\x12\x0e\n\nDISCONNECT\
-    \x10\x07\x12\x07\n\x03ACK\x10\t\x12\x0e\n\nGAME_ABORT\x10\n\x12\t\n\x05A\
-    LIVE\x10\x0b\"a\n\x07GameEnd\x12+\n\x06result\x18\x01\x20\x02(\x0e2\x13.\
-    GameEnd.GameResultR\x06result\")\n\nGameResult\x12\x07\n\x03WIN\x10\0\
-    \x12\x08\n\x04LOSS\x10\x01\x12\x08\n\x04DRAW\x10\x02\"\xb1\x01\n\tGameSt\
-    art\x12!\n\x0cplayer1_name\x18\x01\x20\x02(\tR\x0bplayer1Name\x12!\n\x0c\
-    player2_name\x18\x02\x20\x02(\tR\x0bplayer2Name\x12.\n\x13player1_start_\
-    money\x18\x03\x20\x02(\rR\x11player1StartMoney\x12.\n\x13player2_start_m\
-    oney\x18\x04\x20\x02(\rR\x11player2StartMoney\"\xb6\x01\n\tGameState\x12\
-    !\n\x0cplayer1_bids\x18\x01\x20\x03(\rR\x0bplayer1Bids\x12!\n\x0cplayer2\
-    _bids\x18\x02\x20\x03(\rR\x0bplayer2Bids\x12%\n\x0ecurrent_player\x18\
-    \x03\x20\x02(\rR\rcurrentPlayer\x12\x1d\n\nbottle_pos\x18\x04\x20\x02(\r\
-    R\tbottlePos\x12\x1d\n\nmoney_left\x18\x05\x20\x02(\rR\tmoneyLeft\"/\n\
-    \x0cAuthResponse\x12\x1f\n\x0bplayer_name\x18\x01\x20\x02(\tR\nplayerNam\
-    e\"#\n\x0bBidResponse\x12\x14\n\x05money\x18\x01\x20\x02(\rR\x05money\"#\
-    \n\tBidReject\x12\x16\n\x06reason\x18\x01\x20\x02(\tR\x06reason\"$\n\nAu\
-    thReject\x12\x16\n\x06reason\x18\x01\x20\x02(\tR\x06reason\"\xd3\x01\n\t\
-    BidResult\x12\x20\n\x0cplayer_a_bid\x18\x01\x20\x02(\rR\nplayerABid\x12\
-    \x20\n\x0cplayer_b_bid\x18\x02\x20\x02(\rR\nplayerBBid\x12\x1f\n\x0bwinn\
-    er_name\x18\x03\x20\x02(\tR\nwinnerName\x12;\n\x0bresult_type\x18\x04\
-    \x20\x02(\x0e2\x1a.BidResult.RoundResultTypeR\nresultType\"$\n\x0fRoundR\
-    esultType\x12\x07\n\x03WIN\x10\0\x12\x08\n\x04DRAW\x10\x01J\xd6\x19\n\
-    \x06\x12\x04\0\0o\x01\n\x08\n\x01\x0c\x12\x03\0\0\x12\n\n\n\x02\x04\0\
-    \x12\x04\x02\0-\x01\n\n\n\x03\x04\0\x01\x12\x03\x02\x08\x15\n\x0c\n\x04\
-    \x04\0\x04\0\x12\x04\x06\x02\x1a\x03\n\x0c\n\x05\x04\0\x04\0\x01\x12\x03\
+    \n.GameStartR\tgameStart\x12+\n\nroundStart\x18\n\x20\x01(\x0b2\x0b.Roun\
+    dStartR\nroundStart\"\xe5\x01\n\x07MsgType\x12\x10\n\x0cAUTH_REQUEST\x10\
+    \0\x12\x11\n\rAUTH_RESPONSE\x10\x01\x12\x0f\n\x0bAUTH_REJECT\x10\x02\x12\
+    \x0f\n\x0bBID_REQUEST\x10\x03\x12\x10\n\x0cBID_RESPONSE\x10\x04\x12\x0e\
+    \n\nBID_REJECT\x10\x05\x12\x0e\n\nBID_RESULT\x10\x06\x12\x0e\n\nGAME_STA\
+    RT\x10\x07\x12\x0c\n\x08GAME_END\x10\x08\x12\x0e\n\nDISCONNECT\x10\t\x12\
+    \x07\n\x03ACK\x10\n\x12\x0e\n\nGAME_ABORT\x10\x0b\x12\t\n\x05ALIVE\x10\
+    \x0c\x12\x0f\n\x0bROUND_START\x10\r\"a\n\x07GameEnd\x12+\n\x06result\x18\
+    \x01\x20\x02(\x0e2\x13.GameEnd.GameResultR\x06result\")\n\nGameResult\
+    \x12\x07\n\x03WIN\x10\0\x12\x08\n\x04LOSS\x10\x01\x12\x08\n\x04DRAW\x10\
+    \x02\"\xb1\x01\n\tGameStart\x12!\n\x0cplayer1_name\x18\x01\x20\x02(\tR\
+    \x0bplayer1Name\x12!\n\x0cplayer2_name\x18\x02\x20\x02(\tR\x0bplayer2Nam\
+    e\x12.\n\x13player1_start_money\x18\x03\x20\x02(\rR\x11player1StartMoney\
+    \x12.\n\x13player2_start_money\x18\x04\x20\x02(\rR\x11player2StartMoney\
+    \"\xb6\x01\n\tGameState\x12!\n\x0cplayer1_bids\x18\x01\x20\x03(\rR\x0bpl\
+    ayer1Bids\x12!\n\x0cplayer2_bids\x18\x02\x20\x03(\rR\x0bplayer2Bids\x12%\
+    \n\x0ecurrent_player\x18\x03\x20\x02(\rR\rcurrentPlayer\x12\x1d\n\nbottl\
+    e_pos\x18\x04\x20\x02(\rR\tbottlePos\x12\x1d\n\nmoney_left\x18\x05\x20\
+    \x02(\rR\tmoneyLeft\"/\n\x0cAuthResponse\x12\x1f\n\x0bplayer_name\x18\
+    \x01\x20\x02(\tR\nplayerName\"#\n\x0bBidResponse\x12\x14\n\x05money\x18\
+    \x01\x20\x02(\rR\x05money\"#\n\tBidReject\x12\x16\n\x06reason\x18\x01\
+    \x20\x02(\tR\x06reason\"$\n\nAuthReject\x12\x16\n\x06reason\x18\x01\x20\
+    \x02(\tR\x06reason\"\xd3\x01\n\tBidResult\x12\x20\n\x0cplayer_a_bid\x18\
+    \x01\x20\x02(\rR\nplayerABid\x12\x20\n\x0cplayer_b_bid\x18\x02\x20\x02(\
+    \rR\nplayerBBid\x12\x1f\n\x0bwinner_name\x18\x03\x20\x02(\tR\nwinnerName\
+    \x12;\n\x0bresult_type\x18\x04\x20\x02(\x0e2\x1a.BidResult.RoundResultTy\
+    peR\nresultType\"$\n\x0fRoundResultType\x12\x07\n\x03WIN\x10\0\x12\x08\n\
+    \x04DRAW\x10\x01\"\x94\x01\n\nRoundStart\x12\x1b\n\tround_num\x18\x01\
+    \x20\x02(\rR\x08roundNum\x12$\n\x0eplayer_a_money\x18\x02\x20\x02(\rR\
+    \x0cplayerAMoney\x12$\n\x0eplayer_b_money\x18\x03\x20\x02(\rR\x0cplayerB\
+    Money\x12\x1d\n\nbottle_pos\x18\x04\x20\x02(\rR\tbottlePosJ\xf6\x1c\n\
+    \x06\x12\x04\0\0z\x01\n\x08\n\x01\x0c\x12\x03\0\0\x12\n\n\n\x02\x04\0\
+    \x12\x04\x02\01\x01\n\n\n\x03\x04\0\x01\x12\x03\x02\x08\x15\n\x0c\n\x04\
+    \x04\0\x04\0\x12\x04\x06\x02\x1c\x03\n\x0c\n\x05\x04\0\x04\0\x01\x12\x03\
     \x06\x07\x0e\n\r\n\x06\x04\0\x04\0\x02\0\x12\x03\x07\x04\x15\n\x0e\n\x07\
     \x04\0\x04\0\x02\0\x01\x12\x03\x07\x04\x10\n\x0e\n\x07\x04\0\x04\0\x02\0\
     \x02\x12\x03\x07\x13\x14\n\r\n\x06\x04\0\x04\0\x02\x01\x12\x03\x08\x04\
@@ -2279,8 +2562,8 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     \x02\x12\x03\x0c\x13\x14\n\r\n\x06\x04\0\x04\0\x02\x05\x12\x03\r\x04\x13\
     \n\x0e\n\x07\x04\0\x04\0\x02\x05\x01\x12\x03\r\x04\x0e\n\x0e\n\x07\x04\0\
     \x04\0\x02\x05\x02\x12\x03\r\x11\x12\n\r\n\x06\x04\0\x04\0\x02\x06\x12\
-    \x03\x0e\x04\x14\n\x0e\n\x07\x04\0\x04\0\x02\x06\x01\x12\x03\x0e\x04\x0e\
-    \n\x0e\n\x07\x04\0\x04\0\x02\x06\x02\x12\x03\x0e\x11\x13\n\r\n\x06\x04\0\
+    \x03\x0e\x04\x13\n\x0e\n\x07\x04\0\x04\0\x02\x06\x01\x12\x03\x0e\x04\x0e\
+    \n\x0e\n\x07\x04\0\x04\0\x02\x06\x02\x12\x03\x0e\x11\x12\n\r\n\x06\x04\0\
     \x04\0\x02\x07\x12\x03\x10\x04\x13\n\x0e\n\x07\x04\0\x04\0\x02\x07\x01\
     \x12\x03\x10\x04\x0e\n\x0e\n\x07\x04\0\x04\0\x02\x07\x02\x12\x03\x10\x11\
     \x12\n\r\n\x06\x04\0\x04\0\x02\x08\x12\x03\x11\x04\x11\n\x0e\n\x07\x04\0\
@@ -2288,127 +2571,146 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     \x02\x12\x03\x11\x0f\x10\n\r\n\x06\x04\0\x04\0\x02\t\x12\x03\x13\x04\x13\
     \n\x0e\n\x07\x04\0\x04\0\x02\t\x01\x12\x03\x13\x04\x0e\n\x0e\n\x07\x04\0\
     \x04\0\x02\t\x02\x12\x03\x13\x11\x12\n\r\n\x06\x04\0\x04\0\x02\n\x12\x03\
-    \x15\x04\x0c\n\x0e\n\x07\x04\0\x04\0\x02\n\x01\x12\x03\x15\x04\x07\n\x0e\
-    \n\x07\x04\0\x04\0\x02\n\x02\x12\x03\x15\n\x0b\n\r\n\x06\x04\0\x04\0\x02\
+    \x15\x04\r\n\x0e\n\x07\x04\0\x04\0\x02\n\x01\x12\x03\x15\x04\x07\n\x0e\n\
+    \x07\x04\0\x04\0\x02\n\x02\x12\x03\x15\n\x0c\n\r\n\x06\x04\0\x04\0\x02\
     \x0b\x12\x03\x17\x04\x14\n\x0e\n\x07\x04\0\x04\0\x02\x0b\x01\x12\x03\x17\
     \x04\x0e\n\x0e\n\x07\x04\0\x04\0\x02\x0b\x02\x12\x03\x17\x11\x13\n\r\n\
     \x06\x04\0\x04\0\x02\x0c\x12\x03\x18\x04\x0f\n\x0e\n\x07\x04\0\x04\0\x02\
     \x0c\x01\x12\x03\x18\x04\t\n\x0e\n\x07\x04\0\x04\0\x02\x0c\x02\x12\x03\
-    \x18\x0c\x0e\n\x0b\n\x04\x04\0\x02\0\x12\x03\x1b\x02\x1f\n\x0c\n\x05\x04\
-    \0\x02\0\x04\x12\x03\x1b\x02\n\n\x0c\n\x05\x04\0\x02\0\x06\x12\x03\x1b\
-    \x0b\x12\n\x0c\n\x05\x04\0\x02\0\x01\x12\x03\x1b\x13\x1a\n\x0c\n\x05\x04\
-    \0\x02\0\x03\x12\x03\x1b\x1d\x1e\n7\n\x04\x04\0\x02\x01\x12\x03\x1e\x02\
-    \x1f\x1a*\x20The\x20game\x20has\x20ended.\x20Provide\x20the\x20results.\
-    \n\n\x0c\n\x05\x04\0\x02\x01\x04\x12\x03\x1e\x02\n\n\x0c\n\x05\x04\0\x02\
-    \x01\x06\x12\x03\x1e\x0b\x12\n\x0c\n\x05\x04\0\x02\x01\x01\x12\x03\x1e\
-    \x13\x1a\n\x0c\n\x05\x04\0\x02\x01\x03\x12\x03\x1e\x1d\x1e\n&\n\x04\x04\
-    \0\x02\x02\x12\x03!\x02#\x1a\x19\x20Provided\x20in\x20BID_REQUEST\n\n\
-    \x0c\n\x05\x04\0\x02\x02\x04\x12\x03!\x02\n\n\x0c\n\x05\x04\0\x02\x02\
-    \x06\x12\x03!\x0b\x14\n\x0c\n\x05\x04\0\x02\x02\x01\x12\x03!\x15\x1e\n\
-    \x0c\n\x05\x04\0\x02\x02\x03\x12\x03!!\"\n\x0b\n\x04\x04\0\x02\x03\x12\
-    \x03#\x02)\n\x0c\n\x05\x04\0\x02\x03\x04\x12\x03#\x02\n\n\x0c\n\x05\x04\
-    \0\x02\x03\x06\x12\x03#\x0b\x17\n\x0c\n\x05\x04\0\x02\x03\x01\x12\x03#\
-    \x18$\n\x0c\n\x05\x04\0\x02\x03\x03\x12\x03#'(\n\x0b\n\x04\x04\0\x02\x04\
-    \x12\x03$\x02'\n\x0c\n\x05\x04\0\x02\x04\x04\x12\x03$\x02\n\n\x0c\n\x05\
-    \x04\0\x02\x04\x06\x12\x03$\x0b\x16\n\x0c\n\x05\x04\0\x02\x04\x01\x12\
-    \x03$\x17\"\n\x0c\n\x05\x04\0\x02\x04\x03\x12\x03$%&\n\x0b\n\x04\x04\0\
-    \x02\x05\x12\x03&\x02#\n\x0c\n\x05\x04\0\x02\x05\x04\x12\x03&\x02\n\n\
-    \x0c\n\x05\x04\0\x02\x05\x06\x12\x03&\x0b\x14\n\x0c\n\x05\x04\0\x02\x05\
-    \x01\x12\x03&\x15\x1e\n\x0c\n\x05\x04\0\x02\x05\x03\x12\x03&!\"\n\x0b\n\
-    \x04\x04\0\x02\x06\x12\x03'\x02#\n\x0c\n\x05\x04\0\x02\x06\x04\x12\x03'\
-    \x02\n\n\x0c\n\x05\x04\0\x02\x06\x06\x12\x03'\x0b\x14\n\x0c\n\x05\x04\0\
-    \x02\x06\x01\x12\x03'\x15\x1e\n\x0c\n\x05\x04\0\x02\x06\x03\x12\x03'!\"\
-    \n\x0b\n\x04\x04\0\x02\x07\x12\x03)\x02%\n\x0c\n\x05\x04\0\x02\x07\x04\
-    \x12\x03)\x02\n\n\x0c\n\x05\x04\0\x02\x07\x06\x12\x03)\x0b\x15\n\x0c\n\
-    \x05\x04\0\x02\x07\x01\x12\x03)\x16\x20\n\x0c\n\x05\x04\0\x02\x07\x03\
-    \x12\x03)#$\n\x0b\n\x04\x04\0\x02\x08\x12\x03+\x02#\n\x0c\n\x05\x04\0\
-    \x02\x08\x04\x12\x03+\x02\n\n\x0c\n\x05\x04\0\x02\x08\x06\x12\x03+\x0b\
-    \x14\n\x0c\n\x05\x04\0\x02\x08\x01\x12\x03+\x15\x1e\n\x0c\n\x05\x04\0\
-    \x02\x08\x03\x12\x03+!\"\n\n\n\x02\x04\x01\x12\x04/\07\x01\n\n\n\x03\x04\
-    \x01\x01\x12\x03/\x08\x0f\n\x0c\n\x04\x04\x01\x04\0\x12\x040\x024\x03\n\
-    \x0c\n\x05\x04\x01\x04\0\x01\x12\x030\x07\x11\n\r\n\x06\x04\x01\x04\0\
-    \x02\0\x12\x031\x04\x0c\n\x0e\n\x07\x04\x01\x04\0\x02\0\x01\x12\x031\x04\
-    \x07\n\x0e\n\x07\x04\x01\x04\0\x02\0\x02\x12\x031\n\x0b\n\r\n\x06\x04\
-    \x01\x04\0\x02\x01\x12\x032\x04\r\n\x0e\n\x07\x04\x01\x04\0\x02\x01\x01\
-    \x12\x032\x04\x08\n\x0e\n\x07\x04\x01\x04\0\x02\x01\x02\x12\x032\x0b\x0c\
-    \n\r\n\x06\x04\x01\x04\0\x02\x02\x12\x033\x04\r\n\x0e\n\x07\x04\x01\x04\
-    \0\x02\x02\x01\x12\x033\x04\x08\n\x0e\n\x07\x04\x01\x04\0\x02\x02\x02\
-    \x12\x033\x0b\x0c\n\x0b\n\x04\x04\x01\x02\0\x12\x036\x02!\n\x0c\n\x05\
-    \x04\x01\x02\0\x04\x12\x036\x02\n\n\x0c\n\x05\x04\x01\x02\0\x06\x12\x036\
-    \x0b\x15\n\x0c\n\x05\x04\x01\x02\0\x01\x12\x036\x16\x1c\n\x0c\n\x05\x04\
-    \x01\x02\0\x03\x12\x036\x1f\x20\n\n\n\x02\x04\x02\x12\x049\0>\x01\n\n\n\
-    \x03\x04\x02\x01\x12\x039\x08\x11\n\x0b\n\x04\x04\x02\x02\0\x12\x03:\x02\
-    #\n\x0c\n\x05\x04\x02\x02\0\x04\x12\x03:\x02\n\n\x0c\n\x05\x04\x02\x02\0\
-    \x05\x12\x03:\x0b\x11\n\x0c\n\x05\x04\x02\x02\0\x01\x12\x03:\x12\x1e\n\
-    \x0c\n\x05\x04\x02\x02\0\x03\x12\x03:!\"\n\x0b\n\x04\x04\x02\x02\x01\x12\
-    \x03;\x02#\n\x0c\n\x05\x04\x02\x02\x01\x04\x12\x03;\x02\n\n\x0c\n\x05\
-    \x04\x02\x02\x01\x05\x12\x03;\x0b\x11\n\x0c\n\x05\x04\x02\x02\x01\x01\
-    \x12\x03;\x12\x1e\n\x0c\n\x05\x04\x02\x02\x01\x03\x12\x03;!\"\n\x0b\n\
-    \x04\x04\x02\x02\x02\x12\x03<\x02*\n\x0c\n\x05\x04\x02\x02\x02\x04\x12\
-    \x03<\x02\n\n\x0c\n\x05\x04\x02\x02\x02\x05\x12\x03<\x0b\x11\n\x0c\n\x05\
-    \x04\x02\x02\x02\x01\x12\x03<\x12%\n\x0c\n\x05\x04\x02\x02\x02\x03\x12\
-    \x03<()\n\x0b\n\x04\x04\x02\x02\x03\x12\x03=\x02*\n\x0c\n\x05\x04\x02\
-    \x02\x03\x04\x12\x03=\x02\n\n\x0c\n\x05\x04\x02\x02\x03\x05\x12\x03=\x0b\
-    \x11\n\x0c\n\x05\x04\x02\x02\x03\x01\x12\x03=\x12%\n\x0c\n\x05\x04\x02\
-    \x02\x03\x03\x12\x03=()\n\n\n\x02\x04\x03\x12\x04@\0Q\x01\n\n\n\x03\x04\
-    \x03\x01\x12\x03@\x08\x11\n\x1d\n\x04\x04\x03\x02\0\x12\x03C\x02#\x1a\
-    \x10\x20player1's\x20bids\n\n\x0c\n\x05\x04\x03\x02\0\x04\x12\x03C\x02\n\
-    \n\x0c\n\x05\x04\x03\x02\0\x05\x12\x03C\x0b\x11\n\x0c\n\x05\x04\x03\x02\
-    \0\x01\x12\x03C\x12\x1e\n\x0c\n\x05\x04\x03\x02\0\x03\x12\x03C!\"\n\x1e\
-    \n\x04\x04\x03\x02\x01\x12\x03F\x02#\x1a\x11\x20player2's\x20bids.\n\n\
-    \x0c\n\x05\x04\x03\x02\x01\x04\x12\x03F\x02\n\n\x0c\n\x05\x04\x03\x02\
-    \x01\x05\x12\x03F\x0b\x11\n\x0c\n\x05\x04\x03\x02\x01\x01\x12\x03F\x12\
-    \x1e\n\x0c\n\x05\x04\x03\x02\x01\x03\x12\x03F!\"\n*\n\x04\x04\x03\x02\
-    \x02\x12\x03I\x02%\x1a\x1d\x20Who\x20the\x20receiving\x20player\x20is\n\
-    \n\x0c\n\x05\x04\x03\x02\x02\x04\x12\x03I\x02\n\n\x0c\n\x05\x04\x03\x02\
-    \x02\x05\x12\x03I\x0b\x11\n\x0c\n\x05\x04\x03\x02\x02\x01\x12\x03I\x12\
-    \x20\n\x0c\n\x05\x04\x03\x02\x02\x03\x12\x03I#$\n#\n\x04\x04\x03\x02\x03\
-    \x12\x03L\x02!\x1a\x16\x20Where\x20is\x20the\x20bottle?\n\n\x0c\n\x05\
-    \x04\x03\x02\x03\x04\x12\x03L\x02\n\n\x0c\n\x05\x04\x03\x02\x03\x05\x12\
-    \x03L\x0b\x11\n\x0c\n\x05\x04\x03\x02\x03\x01\x12\x03L\x12\x1c\n\x0c\n\
-    \x05\x04\x03\x02\x03\x03\x12\x03L\x1f\x20\n(\n\x04\x04\x03\x02\x04\x12\
-    \x03O\x02!\x1a\x1b\x20Current\x20player\x20money\x20left\n\n\x0c\n\x05\
-    \x04\x03\x02\x04\x04\x12\x03O\x02\n\n\x0c\n\x05\x04\x03\x02\x04\x05\x12\
-    \x03O\x0b\x11\n\x0c\n\x05\x04\x03\x02\x04\x01\x12\x03O\x12\x1c\n\x0c\n\
-    \x05\x04\x03\x02\x04\x03\x12\x03O\x1f\x20\n\n\n\x02\x04\x04\x12\x04S\0U\
-    \x01\n\n\n\x03\x04\x04\x01\x12\x03S\x08\x14\n\x0b\n\x04\x04\x04\x02\0\
-    \x12\x03T\x02\"\n\x0c\n\x05\x04\x04\x02\0\x04\x12\x03T\x02\n\n\x0c\n\x05\
-    \x04\x04\x02\0\x05\x12\x03T\x0b\x11\n\x0c\n\x05\x04\x04\x02\0\x01\x12\
-    \x03T\x12\x1d\n\x0c\n\x05\x04\x04\x02\0\x03\x12\x03T\x20!\n\n\n\x02\x04\
-    \x05\x12\x04W\0Y\x01\n\n\n\x03\x04\x05\x01\x12\x03W\x08\x13\n\x0b\n\x04\
-    \x04\x05\x02\0\x12\x03X\x02\x1c\n\x0c\n\x05\x04\x05\x02\0\x04\x12\x03X\
-    \x02\n\n\x0c\n\x05\x04\x05\x02\0\x05\x12\x03X\x0b\x11\n\x0c\n\x05\x04\
-    \x05\x02\0\x01\x12\x03X\x12\x17\n\x0c\n\x05\x04\x05\x02\0\x03\x12\x03X\
-    \x1a\x1b\n\n\n\x02\x04\x06\x12\x04[\0]\x01\n\n\n\x03\x04\x06\x01\x12\x03\
-    [\x08\x11\n\x0b\n\x04\x04\x06\x02\0\x12\x03\\\x02\x1d\n\x0c\n\x05\x04\
-    \x06\x02\0\x04\x12\x03\\\x02\n\n\x0c\n\x05\x04\x06\x02\0\x05\x12\x03\\\
-    \x0b\x11\n\x0c\n\x05\x04\x06\x02\0\x01\x12\x03\\\x12\x18\n\x0c\n\x05\x04\
-    \x06\x02\0\x03\x12\x03\\\x1b\x1c\n\n\n\x02\x04\x07\x12\x04_\0a\x01\n\n\n\
-    \x03\x04\x07\x01\x12\x03_\x08\x12\n\x0b\n\x04\x04\x07\x02\0\x12\x03`\x02\
-    \x1d\n\x0c\n\x05\x04\x07\x02\0\x04\x12\x03`\x02\n\n\x0c\n\x05\x04\x07\
-    \x02\0\x05\x12\x03`\x0b\x11\n\x0c\n\x05\x04\x07\x02\0\x01\x12\x03`\x12\
-    \x18\n\x0c\n\x05\x04\x07\x02\0\x03\x12\x03`\x1b\x1c\n\n\n\x02\x04\x08\
-    \x12\x04c\0o\x01\n\n\n\x03\x04\x08\x01\x12\x03c\x08\x11\n\x0c\n\x04\x04\
-    \x08\x04\0\x12\x04e\x02h\x03\n\x0c\n\x05\x04\x08\x04\0\x01\x12\x03e\x07\
-    \x16\n+\n\x06\x04\x08\x04\0\x02\0\x12\x03f\x04\x0c\"\x1c\x20If\x20one\
-    \x20player\x20won\x20outright\n\n\x0e\n\x07\x04\x08\x04\0\x02\0\x01\x12\
-    \x03f\x04\x07\n\x0e\n\x07\x04\x08\x04\0\x02\0\x02\x12\x03f\n\x0b\n2\n\
-    \x06\x04\x08\x04\0\x02\x01\x12\x03g\x04\r\"#\x20If\x20a\x20player\x20won\
-    \x20by\x20draw\x20advantage\n\n\x0e\n\x07\x04\x08\x04\0\x02\x01\x01\x12\
-    \x03g\x04\x08\n\x0e\n\x07\x04\x08\x04\0\x02\x01\x02\x12\x03g\x0b\x0c\n\
-    \x0b\n\x04\x04\x08\x02\0\x12\x03j\x02#\n\x0c\n\x05\x04\x08\x02\0\x04\x12\
-    \x03j\x02\n\n\x0c\n\x05\x04\x08\x02\0\x05\x12\x03j\x0b\x11\n\x0c\n\x05\
-    \x04\x08\x02\0\x01\x12\x03j\x12\x1e\n\x0c\n\x05\x04\x08\x02\0\x03\x12\
-    \x03j!\"\n\x0b\n\x04\x04\x08\x02\x01\x12\x03k\x02#\n\x0c\n\x05\x04\x08\
-    \x02\x01\x04\x12\x03k\x02\n\n\x0c\n\x05\x04\x08\x02\x01\x05\x12\x03k\x0b\
-    \x11\n\x0c\n\x05\x04\x08\x02\x01\x01\x12\x03k\x12\x1e\n\x0c\n\x05\x04\
-    \x08\x02\x01\x03\x12\x03k!\"\n\x0b\n\x04\x04\x08\x02\x02\x12\x03l\x02\"\
-    \n\x0c\n\x05\x04\x08\x02\x02\x04\x12\x03l\x02\n\n\x0c\n\x05\x04\x08\x02\
-    \x02\x05\x12\x03l\x0b\x11\n\x0c\n\x05\x04\x08\x02\x02\x01\x12\x03l\x12\
-    \x1d\n\x0c\n\x05\x04\x08\x02\x02\x03\x12\x03l\x20!\n\x0b\n\x04\x04\x08\
-    \x02\x03\x12\x03m\x02+\n\x0c\n\x05\x04\x08\x02\x03\x04\x12\x03m\x02\n\n\
-    \x0c\n\x05\x04\x08\x02\x03\x06\x12\x03m\x0b\x1a\n\x0c\n\x05\x04\x08\x02\
-    \x03\x01\x12\x03m\x1b&\n\x0c\n\x05\x04\x08\x02\x03\x03\x12\x03m)*\
+    \x18\x0c\x0e\n\r\n\x06\x04\0\x04\0\x02\r\x12\x03\x1a\x04\x15\n\x0e\n\x07\
+    \x04\0\x04\0\x02\r\x01\x12\x03\x1a\x04\x0f\n\x0e\n\x07\x04\0\x04\0\x02\r\
+    \x02\x12\x03\x1a\x12\x14\n\x0b\n\x04\x04\0\x02\0\x12\x03\x1d\x02\x1f\n\
+    \x0c\n\x05\x04\0\x02\0\x04\x12\x03\x1d\x02\n\n\x0c\n\x05\x04\0\x02\0\x06\
+    \x12\x03\x1d\x0b\x12\n\x0c\n\x05\x04\0\x02\0\x01\x12\x03\x1d\x13\x1a\n\
+    \x0c\n\x05\x04\0\x02\0\x03\x12\x03\x1d\x1d\x1e\n7\n\x04\x04\0\x02\x01\
+    \x12\x03\x20\x02\x1f\x1a*\x20The\x20game\x20has\x20ended.\x20Provide\x20\
+    the\x20results.\n\n\x0c\n\x05\x04\0\x02\x01\x04\x12\x03\x20\x02\n\n\x0c\
+    \n\x05\x04\0\x02\x01\x06\x12\x03\x20\x0b\x12\n\x0c\n\x05\x04\0\x02\x01\
+    \x01\x12\x03\x20\x13\x1a\n\x0c\n\x05\x04\0\x02\x01\x03\x12\x03\x20\x1d\
+    \x1e\n&\n\x04\x04\0\x02\x02\x12\x03#\x02#\x1a\x19\x20Provided\x20in\x20B\
+    ID_REQUEST\n\n\x0c\n\x05\x04\0\x02\x02\x04\x12\x03#\x02\n\n\x0c\n\x05\
+    \x04\0\x02\x02\x06\x12\x03#\x0b\x14\n\x0c\n\x05\x04\0\x02\x02\x01\x12\
+    \x03#\x15\x1e\n\x0c\n\x05\x04\0\x02\x02\x03\x12\x03#!\"\n\x0b\n\x04\x04\
+    \0\x02\x03\x12\x03%\x02)\n\x0c\n\x05\x04\0\x02\x03\x04\x12\x03%\x02\n\n\
+    \x0c\n\x05\x04\0\x02\x03\x06\x12\x03%\x0b\x17\n\x0c\n\x05\x04\0\x02\x03\
+    \x01\x12\x03%\x18$\n\x0c\n\x05\x04\0\x02\x03\x03\x12\x03%'(\n\x0b\n\x04\
+    \x04\0\x02\x04\x12\x03&\x02'\n\x0c\n\x05\x04\0\x02\x04\x04\x12\x03&\x02\
+    \n\n\x0c\n\x05\x04\0\x02\x04\x06\x12\x03&\x0b\x16\n\x0c\n\x05\x04\0\x02\
+    \x04\x01\x12\x03&\x17\"\n\x0c\n\x05\x04\0\x02\x04\x03\x12\x03&%&\n\x0b\n\
+    \x04\x04\0\x02\x05\x12\x03(\x02#\n\x0c\n\x05\x04\0\x02\x05\x04\x12\x03(\
+    \x02\n\n\x0c\n\x05\x04\0\x02\x05\x06\x12\x03(\x0b\x14\n\x0c\n\x05\x04\0\
+    \x02\x05\x01\x12\x03(\x15\x1e\n\x0c\n\x05\x04\0\x02\x05\x03\x12\x03(!\"\
+    \n\x0b\n\x04\x04\0\x02\x06\x12\x03)\x02#\n\x0c\n\x05\x04\0\x02\x06\x04\
+    \x12\x03)\x02\n\n\x0c\n\x05\x04\0\x02\x06\x06\x12\x03)\x0b\x14\n\x0c\n\
+    \x05\x04\0\x02\x06\x01\x12\x03)\x15\x1e\n\x0c\n\x05\x04\0\x02\x06\x03\
+    \x12\x03)!\"\n\x0b\n\x04\x04\0\x02\x07\x12\x03+\x02%\n\x0c\n\x05\x04\0\
+    \x02\x07\x04\x12\x03+\x02\n\n\x0c\n\x05\x04\0\x02\x07\x06\x12\x03+\x0b\
+    \x15\n\x0c\n\x05\x04\0\x02\x07\x01\x12\x03+\x16\x20\n\x0c\n\x05\x04\0\
+    \x02\x07\x03\x12\x03+#$\n\x0b\n\x04\x04\0\x02\x08\x12\x03-\x02#\n\x0c\n\
+    \x05\x04\0\x02\x08\x04\x12\x03-\x02\n\n\x0c\n\x05\x04\0\x02\x08\x06\x12\
+    \x03-\x0b\x14\n\x0c\n\x05\x04\0\x02\x08\x01\x12\x03-\x15\x1e\n\x0c\n\x05\
+    \x04\0\x02\x08\x03\x12\x03-!\"\n\x0b\n\x04\x04\0\x02\t\x12\x03/\x02&\n\
+    \x0c\n\x05\x04\0\x02\t\x04\x12\x03/\x02\n\n\x0c\n\x05\x04\0\x02\t\x06\
+    \x12\x03/\x0b\x15\n\x0c\n\x05\x04\0\x02\t\x01\x12\x03/\x16\x20\n\x0c\n\
+    \x05\x04\0\x02\t\x03\x12\x03/#%\n\n\n\x02\x04\x01\x12\x043\0;\x01\n\n\n\
+    \x03\x04\x01\x01\x12\x033\x08\x0f\n\x0c\n\x04\x04\x01\x04\0\x12\x044\x02\
+    8\x03\n\x0c\n\x05\x04\x01\x04\0\x01\x12\x034\x07\x11\n\r\n\x06\x04\x01\
+    \x04\0\x02\0\x12\x035\x04\x0c\n\x0e\n\x07\x04\x01\x04\0\x02\0\x01\x12\
+    \x035\x04\x07\n\x0e\n\x07\x04\x01\x04\0\x02\0\x02\x12\x035\n\x0b\n\r\n\
+    \x06\x04\x01\x04\0\x02\x01\x12\x036\x04\r\n\x0e\n\x07\x04\x01\x04\0\x02\
+    \x01\x01\x12\x036\x04\x08\n\x0e\n\x07\x04\x01\x04\0\x02\x01\x02\x12\x036\
+    \x0b\x0c\n\r\n\x06\x04\x01\x04\0\x02\x02\x12\x037\x04\r\n\x0e\n\x07\x04\
+    \x01\x04\0\x02\x02\x01\x12\x037\x04\x08\n\x0e\n\x07\x04\x01\x04\0\x02\
+    \x02\x02\x12\x037\x0b\x0c\n\x0b\n\x04\x04\x01\x02\0\x12\x03:\x02!\n\x0c\
+    \n\x05\x04\x01\x02\0\x04\x12\x03:\x02\n\n\x0c\n\x05\x04\x01\x02\0\x06\
+    \x12\x03:\x0b\x15\n\x0c\n\x05\x04\x01\x02\0\x01\x12\x03:\x16\x1c\n\x0c\n\
+    \x05\x04\x01\x02\0\x03\x12\x03:\x1f\x20\n\n\n\x02\x04\x02\x12\x04=\0B\
+    \x01\n\n\n\x03\x04\x02\x01\x12\x03=\x08\x11\n\x0b\n\x04\x04\x02\x02\0\
+    \x12\x03>\x02#\n\x0c\n\x05\x04\x02\x02\0\x04\x12\x03>\x02\n\n\x0c\n\x05\
+    \x04\x02\x02\0\x05\x12\x03>\x0b\x11\n\x0c\n\x05\x04\x02\x02\0\x01\x12\
+    \x03>\x12\x1e\n\x0c\n\x05\x04\x02\x02\0\x03\x12\x03>!\"\n\x0b\n\x04\x04\
+    \x02\x02\x01\x12\x03?\x02#\n\x0c\n\x05\x04\x02\x02\x01\x04\x12\x03?\x02\
+    \n\n\x0c\n\x05\x04\x02\x02\x01\x05\x12\x03?\x0b\x11\n\x0c\n\x05\x04\x02\
+    \x02\x01\x01\x12\x03?\x12\x1e\n\x0c\n\x05\x04\x02\x02\x01\x03\x12\x03?!\
+    \"\n\x0b\n\x04\x04\x02\x02\x02\x12\x03@\x02*\n\x0c\n\x05\x04\x02\x02\x02\
+    \x04\x12\x03@\x02\n\n\x0c\n\x05\x04\x02\x02\x02\x05\x12\x03@\x0b\x11\n\
+    \x0c\n\x05\x04\x02\x02\x02\x01\x12\x03@\x12%\n\x0c\n\x05\x04\x02\x02\x02\
+    \x03\x12\x03@()\n\x0b\n\x04\x04\x02\x02\x03\x12\x03A\x02*\n\x0c\n\x05\
+    \x04\x02\x02\x03\x04\x12\x03A\x02\n\n\x0c\n\x05\x04\x02\x02\x03\x05\x12\
+    \x03A\x0b\x11\n\x0c\n\x05\x04\x02\x02\x03\x01\x12\x03A\x12%\n\x0c\n\x05\
+    \x04\x02\x02\x03\x03\x12\x03A()\n\n\n\x02\x04\x03\x12\x04D\0U\x01\n\n\n\
+    \x03\x04\x03\x01\x12\x03D\x08\x11\n\x1d\n\x04\x04\x03\x02\0\x12\x03G\x02\
+    #\x1a\x10\x20player1's\x20bids\n\n\x0c\n\x05\x04\x03\x02\0\x04\x12\x03G\
+    \x02\n\n\x0c\n\x05\x04\x03\x02\0\x05\x12\x03G\x0b\x11\n\x0c\n\x05\x04\
+    \x03\x02\0\x01\x12\x03G\x12\x1e\n\x0c\n\x05\x04\x03\x02\0\x03\x12\x03G!\
+    \"\n\x1e\n\x04\x04\x03\x02\x01\x12\x03J\x02#\x1a\x11\x20player2's\x20bid\
+    s.\n\n\x0c\n\x05\x04\x03\x02\x01\x04\x12\x03J\x02\n\n\x0c\n\x05\x04\x03\
+    \x02\x01\x05\x12\x03J\x0b\x11\n\x0c\n\x05\x04\x03\x02\x01\x01\x12\x03J\
+    \x12\x1e\n\x0c\n\x05\x04\x03\x02\x01\x03\x12\x03J!\"\n*\n\x04\x04\x03\
+    \x02\x02\x12\x03M\x02%\x1a\x1d\x20Who\x20the\x20receiving\x20player\x20i\
+    s\n\n\x0c\n\x05\x04\x03\x02\x02\x04\x12\x03M\x02\n\n\x0c\n\x05\x04\x03\
+    \x02\x02\x05\x12\x03M\x0b\x11\n\x0c\n\x05\x04\x03\x02\x02\x01\x12\x03M\
+    \x12\x20\n\x0c\n\x05\x04\x03\x02\x02\x03\x12\x03M#$\n#\n\x04\x04\x03\x02\
+    \x03\x12\x03P\x02!\x1a\x16\x20Where\x20is\x20the\x20bottle?\n\n\x0c\n\
+    \x05\x04\x03\x02\x03\x04\x12\x03P\x02\n\n\x0c\n\x05\x04\x03\x02\x03\x05\
+    \x12\x03P\x0b\x11\n\x0c\n\x05\x04\x03\x02\x03\x01\x12\x03P\x12\x1c\n\x0c\
+    \n\x05\x04\x03\x02\x03\x03\x12\x03P\x1f\x20\n(\n\x04\x04\x03\x02\x04\x12\
+    \x03S\x02!\x1a\x1b\x20Current\x20player\x20money\x20left\n\n\x0c\n\x05\
+    \x04\x03\x02\x04\x04\x12\x03S\x02\n\n\x0c\n\x05\x04\x03\x02\x04\x05\x12\
+    \x03S\x0b\x11\n\x0c\n\x05\x04\x03\x02\x04\x01\x12\x03S\x12\x1c\n\x0c\n\
+    \x05\x04\x03\x02\x04\x03\x12\x03S\x1f\x20\n\n\n\x02\x04\x04\x12\x04W\0Y\
+    \x01\n\n\n\x03\x04\x04\x01\x12\x03W\x08\x14\n\x0b\n\x04\x04\x04\x02\0\
+    \x12\x03X\x02\"\n\x0c\n\x05\x04\x04\x02\0\x04\x12\x03X\x02\n\n\x0c\n\x05\
+    \x04\x04\x02\0\x05\x12\x03X\x0b\x11\n\x0c\n\x05\x04\x04\x02\0\x01\x12\
+    \x03X\x12\x1d\n\x0c\n\x05\x04\x04\x02\0\x03\x12\x03X\x20!\n\n\n\x02\x04\
+    \x05\x12\x04[\0]\x01\n\n\n\x03\x04\x05\x01\x12\x03[\x08\x13\n\x0b\n\x04\
+    \x04\x05\x02\0\x12\x03\\\x02\x1c\n\x0c\n\x05\x04\x05\x02\0\x04\x12\x03\\\
+    \x02\n\n\x0c\n\x05\x04\x05\x02\0\x05\x12\x03\\\x0b\x11\n\x0c\n\x05\x04\
+    \x05\x02\0\x01\x12\x03\\\x12\x17\n\x0c\n\x05\x04\x05\x02\0\x03\x12\x03\\\
+    \x1a\x1b\n\n\n\x02\x04\x06\x12\x04_\0a\x01\n\n\n\x03\x04\x06\x01\x12\x03\
+    _\x08\x11\n\x0b\n\x04\x04\x06\x02\0\x12\x03`\x02\x1d\n\x0c\n\x05\x04\x06\
+    \x02\0\x04\x12\x03`\x02\n\n\x0c\n\x05\x04\x06\x02\0\x05\x12\x03`\x0b\x11\
+    \n\x0c\n\x05\x04\x06\x02\0\x01\x12\x03`\x12\x18\n\x0c\n\x05\x04\x06\x02\
+    \0\x03\x12\x03`\x1b\x1c\n\n\n\x02\x04\x07\x12\x04c\0e\x01\n\n\n\x03\x04\
+    \x07\x01\x12\x03c\x08\x12\n\x0b\n\x04\x04\x07\x02\0\x12\x03d\x02\x1d\n\
+    \x0c\n\x05\x04\x07\x02\0\x04\x12\x03d\x02\n\n\x0c\n\x05\x04\x07\x02\0\
+    \x05\x12\x03d\x0b\x11\n\x0c\n\x05\x04\x07\x02\0\x01\x12\x03d\x12\x18\n\
+    \x0c\n\x05\x04\x07\x02\0\x03\x12\x03d\x1b\x1c\n\n\n\x02\x04\x08\x12\x04g\
+    \0s\x01\n\n\n\x03\x04\x08\x01\x12\x03g\x08\x11\n\x0c\n\x04\x04\x08\x04\0\
+    \x12\x04i\x02l\x03\n\x0c\n\x05\x04\x08\x04\0\x01\x12\x03i\x07\x16\n+\n\
+    \x06\x04\x08\x04\0\x02\0\x12\x03j\x04\x0c\"\x1c\x20If\x20one\x20player\
+    \x20won\x20outright\n\n\x0e\n\x07\x04\x08\x04\0\x02\0\x01\x12\x03j\x04\
+    \x07\n\x0e\n\x07\x04\x08\x04\0\x02\0\x02\x12\x03j\n\x0b\n2\n\x06\x04\x08\
+    \x04\0\x02\x01\x12\x03k\x04\r\"#\x20If\x20a\x20player\x20won\x20by\x20dr\
+    aw\x20advantage\n\n\x0e\n\x07\x04\x08\x04\0\x02\x01\x01\x12\x03k\x04\x08\
+    \n\x0e\n\x07\x04\x08\x04\0\x02\x01\x02\x12\x03k\x0b\x0c\n\x0b\n\x04\x04\
+    \x08\x02\0\x12\x03n\x02#\n\x0c\n\x05\x04\x08\x02\0\x04\x12\x03n\x02\n\n\
+    \x0c\n\x05\x04\x08\x02\0\x05\x12\x03n\x0b\x11\n\x0c\n\x05\x04\x08\x02\0\
+    \x01\x12\x03n\x12\x1e\n\x0c\n\x05\x04\x08\x02\0\x03\x12\x03n!\"\n\x0b\n\
+    \x04\x04\x08\x02\x01\x12\x03o\x02#\n\x0c\n\x05\x04\x08\x02\x01\x04\x12\
+    \x03o\x02\n\n\x0c\n\x05\x04\x08\x02\x01\x05\x12\x03o\x0b\x11\n\x0c\n\x05\
+    \x04\x08\x02\x01\x01\x12\x03o\x12\x1e\n\x0c\n\x05\x04\x08\x02\x01\x03\
+    \x12\x03o!\"\n\x0b\n\x04\x04\x08\x02\x02\x12\x03p\x02\"\n\x0c\n\x05\x04\
+    \x08\x02\x02\x04\x12\x03p\x02\n\n\x0c\n\x05\x04\x08\x02\x02\x05\x12\x03p\
+    \x0b\x11\n\x0c\n\x05\x04\x08\x02\x02\x01\x12\x03p\x12\x1d\n\x0c\n\x05\
+    \x04\x08\x02\x02\x03\x12\x03p\x20!\n\x0b\n\x04\x04\x08\x02\x03\x12\x03q\
+    \x02+\n\x0c\n\x05\x04\x08\x02\x03\x04\x12\x03q\x02\n\n\x0c\n\x05\x04\x08\
+    \x02\x03\x06\x12\x03q\x0b\x1a\n\x0c\n\x05\x04\x08\x02\x03\x01\x12\x03q\
+    \x1b&\n\x0c\n\x05\x04\x08\x02\x03\x03\x12\x03q)*\n\n\n\x02\x04\t\x12\x04\
+    u\0z\x01\n\n\n\x03\x04\t\x01\x12\x03u\x08\x12\n\x0b\n\x04\x04\t\x02\0\
+    \x12\x03v\x02\x20\n\x0c\n\x05\x04\t\x02\0\x04\x12\x03v\x02\n\n\x0c\n\x05\
+    \x04\t\x02\0\x05\x12\x03v\x0b\x11\n\x0c\n\x05\x04\t\x02\0\x01\x12\x03v\
+    \x12\x1b\n\x0c\n\x05\x04\t\x02\0\x03\x12\x03v\x1e\x1f\n\x0b\n\x04\x04\t\
+    \x02\x01\x12\x03w\x02%\n\x0c\n\x05\x04\t\x02\x01\x04\x12\x03w\x02\n\n\
+    \x0c\n\x05\x04\t\x02\x01\x05\x12\x03w\x0b\x11\n\x0c\n\x05\x04\t\x02\x01\
+    \x01\x12\x03w\x12\x20\n\x0c\n\x05\x04\t\x02\x01\x03\x12\x03w#$\n\x0b\n\
+    \x04\x04\t\x02\x02\x12\x03x\x02%\n\x0c\n\x05\x04\t\x02\x02\x04\x12\x03x\
+    \x02\n\n\x0c\n\x05\x04\t\x02\x02\x05\x12\x03x\x0b\x11\n\x0c\n\x05\x04\t\
+    \x02\x02\x01\x12\x03x\x12\x20\n\x0c\n\x05\x04\t\x02\x02\x03\x12\x03x#$\n\
+    \x0b\n\x04\x04\t\x02\x03\x12\x03y\x02!\n\x0c\n\x05\x04\t\x02\x03\x04\x12\
+    \x03y\x02\n\n\x0c\n\x05\x04\t\x02\x03\x05\x12\x03y\x0b\x11\n\x0c\n\x05\
+    \x04\t\x02\x03\x01\x12\x03y\x12\x1c\n\x0c\n\x05\x04\t\x02\x03\x03\x12\
+    \x03y\x1f\x20\
 ";
 
 /// `FileDescriptorProto` object which was a source for this generated file
@@ -2426,7 +2728,7 @@ pub fn file_descriptor() -> &'static ::protobuf::reflect::FileDescriptor {
     file_descriptor.get(|| {
         let generated_file_descriptor = generated_file_descriptor_lazy.get(|| {
             let mut deps = ::std::vec::Vec::with_capacity(0);
-            let mut messages = ::std::vec::Vec::with_capacity(9);
+            let mut messages = ::std::vec::Vec::with_capacity(10);
             messages.push(ServerRequest::generated_message_descriptor_data());
             messages.push(GameEnd::generated_message_descriptor_data());
             messages.push(GameStart::generated_message_descriptor_data());
@@ -2436,6 +2738,7 @@ pub fn file_descriptor() -> &'static ::protobuf::reflect::FileDescriptor {
             messages.push(BidReject::generated_message_descriptor_data());
             messages.push(AuthReject::generated_message_descriptor_data());
             messages.push(BidResult::generated_message_descriptor_data());
+            messages.push(RoundStart::generated_message_descriptor_data());
             let mut enums = ::std::vec::Vec::with_capacity(3);
             enums.push(server_request::MsgType::generated_enum_descriptor_data());
             enums.push(game_end::GameResult::generated_enum_descriptor_data());
