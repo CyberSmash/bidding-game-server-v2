@@ -255,14 +255,18 @@ async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> 
 
     let mut error_count = 0;
     let mut bad_bid = ServerRequest::new();
+    bad_bid.set_msgType(MsgType::BID_REJECT);
+
     let mut ack_bid = ServerRequest::new();
     ack_bid.set_msgType(MsgType::ACK);
-    bad_bid.set_msgType(MsgType::BID_REJECT);
-    while error_count < 3 {
-        let mut msg = Comms::ServerRequest::new();
-        msg.set_msgType(Comms::server_request::MsgType::BID_REQUEST);
 
-        match send_proto_to_client(stream, &msg).await {
+
+    let mut bid_request_msg = Comms::ServerRequest::new();
+    bid_request_msg.set_msgType(Comms::server_request::MsgType::BID_REQUEST);
+
+    while error_count < 3 {
+
+        match send_proto_to_client(stream, &bid_request_msg).await {
             Ok(_) => {}
             Err(e) => {
                 println!("Error sending bid.");
@@ -503,8 +507,6 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
 
 async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Event>, id: u32)
 {
-
-
     let gm_backoff = Duration::from_millis(500);
     println!("Game Master: {} is alive!", id);
 
@@ -538,8 +540,26 @@ async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Eve
                         loser_message.gameEnd = MessageField::some(ge);
 
                         if game_result.winner == name_a {
-                            send_proto_to_client(&mut stream_a, &winner_message).await;
-                            send_proto_to_client(&mut stream_b, &loser_message).await;
+                            let results = join!(send_proto_to_client(&mut stream_a, &winner_message),
+                                send_proto_to_client(&mut stream_b, &loser_message));
+                            match results.0 {
+                                Ok(_) => {}
+                                Err(_) => {
+                                    // @TODO: We clearly need a way to tell the player manager
+                                    // in a better way that a player has disconnected.
+                                    println!("I lost player_a")
+                                }
+
+                            }
+
+                            match results.1 {
+                                Ok(_) => {}
+                                Err(_) => {
+                                    // @TODO: We clearly need a way to tell the player manager
+                                    // in a better way that a player has disconnected.
+                                    println!("I lost player_b")
+                                }
+                            }
                         }
 
 
@@ -575,20 +595,44 @@ async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Eve
 }
 
 
-fn get_free_players(players: &HashMap<String, Player>) -> Vec<String>
+async fn get_free_players(players: &mut HashMap<String, Player>) -> Vec<String>
 {
     let mut indexes: Vec<String> = vec!();
+    let mut dead_players: Vec<String> = vec!();
     let mut current_time = Utc::now();
+    let mut alive_msg = ServerRequest::new();
+    alive_msg.set_msgType(MsgType::ALIVE);
     for (name, player) in players.into_iter() {
         if !player.in_game && player.player_cooldown < current_time {
+            match send_proto_to_client(&mut player.stream.clone(), &alive_msg).await {
+                Ok(_) => {}
+                Err(_) => {
+                    dead_players.push(player.name.clone());
+                    continue;
+                }
+            }
+
+            let resp = match read_proto_from_client(&mut player.stream.clone()).await {
+                Ok(r) => { r }
+                Err(_) => {
+                    dead_players.push(player.name.clone());
+                    continue;
+                }
+            };
+
             indexes.push(name.clone());
         }
     }
+
+    for dead_player in dead_players {
+        players.remove(dead_player.as_str());
+    }
+
     return indexes;
 }
 
 async fn handle_need_players(players: &mut HashMap<String, Player>, gm_sender: &mut Sender<Event>) -> bool {
-    let free_players = get_free_players(&players);
+    let free_players = get_free_players(players).await;
     let current_time = Utc::now();
     if free_players.len() < 2 {
         match gm_sender.send(Event::Bad).await
