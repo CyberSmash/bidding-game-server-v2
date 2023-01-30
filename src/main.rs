@@ -34,7 +34,7 @@ const CLIENT_ERROR_MAX: u32 = 3;
 const MAX_GAME_ROUNDS: u32 = 10;
 const BOTTLE_MIN: u32 = 0;
 const BOTTLE_MAX: u32 = 10;
-
+const MAX_BID_ERRORS: u32 = 3;
 enum GameStatus {
     Abandoned,
     Completed,
@@ -120,46 +120,12 @@ fn get_player_info_for_game(players: &mut HashMap<String, Player>, player_name: 
     };
 }
 
-async fn read_from_client(stream: &TcpStream) -> std::io::Result<String> {
-    let reader = BufReader::new(stream.clone());
-    let mut lines = reader.lines();
-    let response = match lines.next().await {
-        None => {
-            println!("Couldn't get data from player");
-            return Ok(String::new());
-        }
-        Some(r) => { match r {
-            Ok(resp) => {resp}
-            Err(err) => {
-                println!("An unknown error occured reading lines. {}", err);
-                return Ok(String::new());
-            }
-        }}
-    };
-    //Some(response)
-    Ok(response)
-}
-
-/**
- * Send an arbitrary String message to the client.
- * TODO: Fix up some of the error handling so the calling thread knows there was a
- * problem.
- */
-async fn send_to_client(msg: &str, stream: &mut TcpStream)
-{
-    match stream.write_all(msg.as_bytes()).await {
-        Ok(_) => {}
-        Err(_) => {println!("Error: I was unable to contact the client. Have they gone away?")}
-    }
-
-}
-
 
 async fn send_proto_to_client(stream: &mut TcpStream, msg: &Comms::ServerRequest) -> std::result::Result<(), BidError> {
     let final_msg = match  msg.write_length_delimited_to_bytes().map_err(|_| BidError::ErrorProtobufEncoding) {
         Ok(m) => {m}
         Err(e) => {
-            println!("[+] I ran into an error encoding protobuffer.");
+            println!("[-] I ran into an error encoding protobuffer.");
             return Err(e);
         }
     };
@@ -167,7 +133,7 @@ async fn send_proto_to_client(stream: &mut TcpStream, msg: &Comms::ServerRequest
     match stream.write_all(final_msg.as_slice()).await.map_err(|_| BidError::ErrorOnSend) {
         Ok(_) => {}
         Err(e) => {
-            println!("[-] Error writing all.");
+            println!("[-] Error writing proto buffer.");
             return Err(e);
         }
     };
@@ -199,6 +165,7 @@ async fn read_varint_from_stream(mut stream: &TcpStream) -> std::result::Result<
         {
             Ok(_) => {}
             Err(e) => {
+                println!("Error reading varint: {:?}", e);
                 return Err(BidError::ErrorOnRead);
             }
         };
@@ -215,22 +182,7 @@ async fn read_varint_from_stream(mut stream: &TcpStream) -> std::result::Result<
 
 async fn read_proto_from_client(mut stream: &TcpStream) -> std::result::Result<Comms::ServerRequest, BidError> {
     // Get the size of the data first.
-    let num_bytes = match read_varint_from_stream(stream).await {
-        Ok(bytes) => {bytes}
-        Err(e) => {
-            return match e {
-                BidError::ErrorOnRead => {
-                    println!("Error: Could not read size of protobuf.");
-                    Err(e)
-                }
-                _ => {
-                    println!("Unexpected Error: {}", e.to_string());
-                    Err(e)
-                }
-            };
-        }
-
-    };
+    let num_bytes = read_varint_from_stream(stream).await?;
 
     if num_bytes <= 0 {
         return Err(BidError::ErrorOnRead);
@@ -239,19 +191,13 @@ async fn read_proto_from_client(mut stream: &TcpStream) -> std::result::Result<C
     let mut raw_data = vec![0u8; num_bytes as usize];
 
     // Read in the bytes from the stream
-    match async_std::io::timeout(SOCKET_READ_TIMEOUT, stream.read_exact(&mut raw_data)).await {
-        Ok(_) => {}
-        Err(_) => {
-            println!("Timed out waiting on {} bytes from client.", num_bytes);
-            return Err(BidError::ErrorOnRead);
-        }
-    };
+    async_std::io::timeout(SOCKET_READ_TIMEOUT, stream.read_exact(&mut raw_data)).await.map_err(|_| BidError::PlayerTimedOut)?;
 
     let server_request =  Comms::ServerRequest::parse_from_bytes(raw_data.as_slice()).map_err(|_| BidError::ProtoParseError)?;
     Ok(server_request)
 }
 
-async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> Option<u32> {
+async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> std::result::Result<u32, BidError> {
 
     let mut error_count = 0;
     let mut bad_bid = ServerRequest::new();
@@ -264,15 +210,10 @@ async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> 
     let mut bid_request_msg = Comms::ServerRequest::new();
     bid_request_msg.set_msgType(Comms::server_request::MsgType::BID_REQUEST);
 
-    while error_count < 3 {
+    while error_count < MAX_BID_ERRORS {
 
-        match send_proto_to_client(stream, &bid_request_msg).await {
-            Ok(_) => {}
-            Err(e) => {
-                println!("Error sending bid.");
-                return None;
-            }
-        }
+        send_proto_to_client(stream, &bid_request_msg).await?;
+
         let bid_num = match read_proto_from_client(stream).await {
             Ok(response_proto) => {
                 let mut bid_amount = 0;
@@ -288,12 +229,39 @@ async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> 
                         }
                     };
                 }
+                else {
+                    println!("Error: I did not receive the expected bid response.");
+                    return Err(BidError::UnexpectedResponseTypeFromClient);
+                }
                 bid_amount
             }
-            Err(_) => {
-                error_count += 1;
-                println!("Player timed out waiting for a bid. They have {} chances left", 3 - error_count);
-                continue;
+            Err(e) => {
+                match e {
+                    BidError::ErrorProtobufEncoding => {
+                        error_count += 1;
+                        println!("Error decoding protobuf.");
+                        continue;
+                    }
+                    BidError::ErrorOnRead => {
+                        // In this case the client has likely closed the connection.
+                        println!("Client has gone away while getting a bid.");
+                        return Err(e);
+                    }
+                    BidError::ProtoParseError => {
+                        error_count += 1;
+                        println!("Could not parse protobuf.");
+                        continue;
+                    }
+                    BidError::PlayerTimedOut => {
+                        error_count += 1;
+                        println!("Player timed out waiting for a bid. They have {} chances left", 3 - error_count);
+                        continue;
+                    }
+                    _ => {
+                        println!("Unexpected error.");
+                        return Err(e);
+                    }
+                }
             }
         };
 
@@ -301,22 +269,15 @@ async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> 
         // have 0 to bid.
         if (bid_num > player_money_left) || (bid_num == 0 && player_money_left > 0) {
             error_count += 1;
-            //send_to_client("badbid\n", stream).await;
-            match send_proto_to_client(stream, &bad_bid).await {
-                Ok(_) => {}
-                Err(e) => {
-                    println!("Error sending proto to the client");
-                    return None;
-                }
-            }
+            send_proto_to_client(stream, &bad_bid).await?;
             continue;
         }
         else {
-            send_proto_to_client(stream, &ack_bid).await;
-            return Some(bid_num);
+            send_proto_to_client(stream, &ack_bid).await?;
+            return Ok(bid_num);
         }
     }
-    None
+    return Err(BidError::MaxBidErrorsReached);
 }
 
 fn make_start_proto(player_a_name: String, player_a_money: u32, player_b_name: String, player_b_money: u32) -> ServerRequest
@@ -429,24 +390,24 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
 
 
         let bid_a = match bids.0 {
-            None => {
-                println!("Could not get bid from {}. Abandon game.", name_a);
-                return gr_a_abandoned;
-            }
-            Some(bid) => {
+            Ok(bid) => {
                 bid
+            }
+            Err(e) => {
+                return gr_a_abandoned;
             }
         };
 
         let bid_b = match bids.1
         {
-            None => {
+            Ok(bid) => {
+                bid
+            }
+            Err(e) => {
                 println!("Could not get bid from {}. Abandon game.", name_b);
                 return gr_b_abandoned;
             }
-            Some(bid) => {
-                bid
-            }
+
         };
 
 
@@ -597,7 +558,7 @@ async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Eve
 
 async fn get_free_players(players: &mut HashMap<String, Player>) -> Vec<String>
 {
-    let mut indexes: Vec<String> = vec!();
+    let mut ready_players: Vec<String> = vec!();
     let mut dead_players: Vec<String> = vec!();
     let mut current_time = Utc::now();
     let mut alive_msg = ServerRequest::new();
@@ -612,7 +573,8 @@ async fn get_free_players(players: &mut HashMap<String, Player>) -> Vec<String>
                 }
             }
 
-            let resp = match read_proto_from_client(&mut player.stream.clone()).await {
+            // We don't really care what they respond with as long as they respond with something.
+            match read_proto_from_client(&mut player.stream.clone()).await {
                 Ok(r) => { r }
                 Err(_) => {
                     dead_players.push(player.name.clone());
@@ -620,15 +582,18 @@ async fn get_free_players(players: &mut HashMap<String, Player>) -> Vec<String>
                 }
             };
 
-            indexes.push(name.clone());
+            // In this case we have found a player who can play the next game.
+            ready_players.push(name.clone());
         }
     }
 
+    // Before we go, remove any players who are dead.
     for dead_player in dead_players {
+        println!("Pruning {} as they have gone away.", dead_player);
         players.remove(dead_player.as_str());
     }
 
-    return indexes;
+    return ready_players;
 }
 
 async fn handle_need_players(players: &mut HashMap<String, Player>, gm_sender: &mut Sender<Event>) -> bool {
@@ -638,7 +603,9 @@ async fn handle_need_players(players: &mut HashMap<String, Player>, gm_sender: &
         match gm_sender.send(Event::Bad).await
         {
             Ok(_) => {}
-            Err(e) => {println!("Error sending message to game master.");}
+            Err(e) => {
+                println!("Error sending message to game master.");
+            }
         }
         return false;
     }
