@@ -1,8 +1,9 @@
 use std::fmt;
-use std::fmt::Formatter;
+//use std::fmt::Formatter;
 
 #[derive(Debug)]
 pub enum BidError {
+    ErrorBindingToInterface,
     ErrorProtobufEncoding,
     ErrorOnSend,
     ErrorOnRead,
@@ -12,6 +13,8 @@ pub enum BidError {
     MaxBidErrorsReached,
     UnexpectedResponseTypeFromClient,
     PlayerTimedOut,
+    DbCannotPrepStatement,
+    DbCannotOpenDatabase,
 }
 
 impl std::error::Error for BidError {}
@@ -27,7 +30,10 @@ impl fmt::Display for BidError {
             BidError::PlayerNotFoundByName => write!(f, "Could not find the player by their name in our players list."),
             BidError::MaxBidErrorsReached => write!(f, "Maximum number of client bid errors reached."),
             BidError::UnexpectedResponseTypeFromClient => write!(f, "Unexpected response type received from the client."),
-            BidError::PlayerTimedOut => write!(f, "The player has timed out.")
+            BidError::PlayerTimedOut => write!(f, "The player has timed out."),
+            BidError::DbCannotOpenDatabase => write!(f, "Could not open database file."),
+            BidError::DbCannotPrepStatement => write!(f, "Could not prepare statement for database."),
+            BidError::ErrorBindingToInterface => write!(f, "Error binding interface / port."),
 
         }
     }

@@ -1,10 +1,10 @@
 use async_std::{
-    io::BufReader,
     net::{TcpListener, TcpStream, ToSocketAddrs},
     prelude::*,
     task,
 };
 
+use sqlx::sqlite::{SqlitePoolOptions, Sqlite, SqlitePool};
 use std::{thread};
 
 use futures::{join, StreamExt};
@@ -19,14 +19,15 @@ use std::net::Shutdown;
 use chrono::{Utc};
 use std::time::Duration;
 use protobuf::{Message, MessageField};
-
 use rand::{rngs::StdRng, Rng, SeedableRng};
 mod protos;
-
+use clap::{Parser};
 use protos::Comms;
+use std::path::PathBuf;
+
 type Sender<T> = mpsc::UnboundedSender<T>;
 type Receiver<T> = mpsc::UnboundedReceiver<T>;
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+//type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 
 const SOCKET_READ_TIMEOUT: Duration = Duration::from_millis(500);
@@ -86,10 +87,21 @@ struct GameResult
     status: GameStatus,
 }
 
+#[derive(sqlx::FromRow)]
+struct DatabaseUser {
+    id: i32,
+    username: String,
+    token: i32,
+    wins: i32,
+    losses: i32,
+    elo: i32,
+    draws: i32,
+}
 
 // The player managers representation of a player. This is the authoritative
 // copy of the player information.
 struct Player {
+    id: i32,
     name: String,
     wins: u64,
     losses: u64,
@@ -106,6 +118,21 @@ struct GMPlayer {
 
 type SomeResult<T> = std::result::Result<T, BidError>;
 
+/**
+ * Arguments Parsing.
+ */
+#[derive(Parser, Debug)]
+struct Args {
+
+    #[arg(short, long, value_name = "FILE")]
+    database: PathBuf,
+
+    #[arg(short, long, default_value_t = String::from("localhost"))]
+    interface: String,
+
+    #[arg(short, long, default_value_t = String::from("8080"))]
+    port: String
+}
 
 fn get_player_info_for_game(players: &mut HashMap<String, Player>, player_name: &String) -> Option<GMPlayer> {
 
@@ -216,7 +243,7 @@ async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> 
 
         let bid_num = match read_proto_from_client(stream).await {
             Ok(response_proto) => {
-                let mut bid_amount = 0;
+                let bid_amount: u32;
                 if response_proto.msgType() == MsgType::BID_RESPONSE {
                     bid_amount = match response_proto.bidResponse.money {
                         None => {
@@ -290,8 +317,8 @@ fn make_start_proto(player_a_name: String, player_a_money: u32, player_b_name: S
 
     gs.set_player1_name(player_a_name);
     gs.set_player2_name(player_b_name);
-    gs.set_player1_start_money(100);
-    gs.set_player2_start_money(100);
+    gs.set_player1_start_money(player_a_money);
+    gs.set_player2_start_money(player_b_money);
     start_msg.gameStart = MessageField::some(gs);
     return start_msg;
 }
@@ -393,7 +420,7 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
             Ok(bid) => {
                 bid
             }
-            Err(e) => {
+            Err(_) => {
                 return gr_a_abandoned;
             }
         };
@@ -404,7 +431,7 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
                 bid
             }
             Err(e) => {
-                println!("Could not get bid from {}. Abandon game.", name_b);
+                println!("Could not get bid from {}. Abandon game. {:?}", name_b, e);
                 return gr_b_abandoned;
             }
 
@@ -545,7 +572,7 @@ async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Eve
                 pm_sender.send(Event::NeedPlayers {id}).await;
 
             }
-            Event::Good {id: i32} => {}
+            Event::Good {id} => {}
             Event::Bad => {
                 thread::sleep(gm_backoff);
                 pm_sender.send(Event::NeedPlayers {id}).await;
@@ -560,7 +587,7 @@ async fn get_free_players(players: &mut HashMap<String, Player>) -> Vec<String>
 {
     let mut ready_players: Vec<String> = vec!();
     let mut dead_players: Vec<String> = vec!();
-    let mut current_time = Utc::now();
+    let current_time = Utc::now();
     let mut alive_msg = ServerRequest::new();
     alive_msg.set_msgType(MsgType::ALIVE);
     for (name, player) in players.into_iter() {
@@ -598,13 +625,13 @@ async fn get_free_players(players: &mut HashMap<String, Player>) -> Vec<String>
 
 async fn handle_need_players(players: &mut HashMap<String, Player>, gm_sender: &mut Sender<Event>) -> bool {
     let free_players = get_free_players(players).await;
-    let current_time = Utc::now();
+
     if free_players.len() < 2 {
         match gm_sender.send(Event::Bad).await
         {
             Ok(_) => {}
             Err(e) => {
-                println!("Error sending message to game master.");
+                println!("Error sending message to game master. {:?}", e);
             }
         }
         return false;
@@ -646,13 +673,19 @@ async fn handle_need_players(players: &mut HashMap<String, Player>, gm_sender: &
     true
 }
 
-async fn player_manager(mut sender: Sender<Event>, mut receiver: Receiver<Event>) {
+async fn player_manager(sender: Sender<Event>, mut receiver: Receiver<Event>, database_pool: SqlitePool) -> Result<(), BidError> {
 
 
     let mut rng = StdRng::seed_from_u64(Utc::now().timestamp() as u64);
     let mut players: HashMap<String, Player> = HashMap::new();
     let mut game_comms: HashMap<u32, Sender<Event>> = HashMap::new();
-    //let  mut game_masters = FuturesUnordered::new();
+    let mut db_connection = match database_pool.acquire().await {
+        Ok(c) => c,
+        Err(e) => {
+            println!("Could not acquire a connection to the database from the pool.");
+            return Err(BidError::DbCannotOpenDatabase);
+        }
+    };
     let max_games = 4;
 
     for id in 0..max_games {
@@ -664,7 +697,7 @@ async fn player_manager(mut sender: Sender<Event>, mut receiver: Receiver<Event>
 
     while let Some(event) = receiver.next().await {
         match event {
-            Event::NewPlayer { mut player } => {
+            Event::NewPlayer { player } => {
                 println!("The player manager has recvd. {}", player.name);
                 players.insert(player.name.clone(), player);
                 println!("Num players: {}", players.len())
@@ -688,7 +721,12 @@ async fn player_manager(mut sender: Sender<Event>, mut receiver: Receiver<Event>
                                  result.winner,
                                  result.loser)
                     }
-                    GameStatus::Draw => {}
+                    GameStatus::Draw => {
+                        sqlx::query("UPDATE players SET wins = draws + 1 where username = ? or username = ?")
+                            .bind(result.winner.clone())
+                            .bind(result.loser.clone())
+                            .execute(&mut *db_connection).await.unwrap();
+                    }
                     GameStatus::Disconnect => {}
                 }
                 if let Some(peer) = players.get_mut(&result.winner) {
@@ -696,6 +734,7 @@ async fn player_manager(mut sender: Sender<Event>, mut receiver: Receiver<Event>
                     peer.player_cooldown = Utc::now() + chrono::Duration::seconds(rng.gen_range(1..10));
                     peer.in_game = false;
                     peer.wins += 1;
+                    sqlx::query("UPDATE players SET wins = wins + 1 where username = ?").bind(result.winner).execute(&mut *db_connection).await.unwrap();
 
                 }
                 if let Some(peer) = players.get_mut(&result.loser)
@@ -704,6 +743,7 @@ async fn player_manager(mut sender: Sender<Event>, mut receiver: Receiver<Event>
                     peer.player_cooldown = Utc::now() + chrono::Duration::seconds(rng.gen_range(1..10));
                     peer.in_game = false;
                     peer.losses += 1;
+                    sqlx::query("UPDATE players SET wins = losses + 1 where username = ?").bind(result.loser).execute(&mut *db_connection).await.unwrap();
                 }
             }
             Event::NeedPlayers {id} => {
@@ -726,79 +766,102 @@ async fn player_manager(mut sender: Sender<Event>, mut receiver: Receiver<Event>
         }
     }
 
+    Ok(())
+
 }
 
-async fn connection_loop(mut stream: TcpStream, mut pm_sender: Sender<Event>) -> std::result::Result<(), BidError>
+async fn connection_loop(mut stream: TcpStream, mut pm_sender: Sender<Event>, database_connection: SqlitePool) -> std::result::Result<(), BidError>
 {
-    //let reader = BufReader::new(stream.clone());
-    //let  writer = BufWriter::new(&stream);
-    //let mut lines = reader.lines();
-    //let login_msg = "login\n";
     let mut auth_request = Comms::ServerRequest::new();
     auth_request.set_msgType(Comms::server_request::MsgType::AUTH_REQUEST);
 
     match send_proto_to_client(&mut stream, &auth_request).await {
         Ok(_) => {}
-        Err(e) => {println!("Error: {}", e)}
+        Err(e) => { println!("Error: {}", e) }
     }
 
-    //send_to_client(login_msg, &mut stream).await;
 
-    /*
-    let name = match lines.next().await {
-        None => Err("Peer disconnected.")?,
-        Some(line) => line?,
-    };
-    */
     let login_name = match read_proto_from_client(&mut stream).await {
-        Ok(resp) => {resp}
+        Ok(resp) => { resp }
         Err(e) => {
             println!("Error: {}", e);
             return Err(e);
         }
     };
 
-    let name = match login_name.msgType() {
-        Comms::server_request::MsgType::AUTH_RESPONSE => {login_name.authResponse.player_name().to_string()}
+    let username = match login_name.msgType() {
+        Comms::server_request::MsgType::AUTH_RESPONSE => { login_name.authResponse.player_name().to_string() }
         _ => {
             println!("Invalid response received.");
             String::new()
         }
     };
+    let mut conn = match database_connection.acquire().await {
+        Ok(c) => {c}
+        Err(e) => {
+            println!("Could not get a database connection from the pool.");
+            return Err(BidError::DbCannotOpenDatabase);
+        }
+    };
+    let result = match sqlx::query_as::<_, DatabaseUser>("SELECT * from players WHERE username = ?").bind(username.to_owned()).fetch_one(&mut *conn).await {
+        Err(e) => {
+            println!("Rejected authentication from {}", username);
+            let mut auth_reject = ServerRequest::new();
+            auth_reject.set_msgType(MsgType::AUTH_REJECT);
 
-    //send_to_client("ok\n", &mut stream).await;
+            send_proto_to_client(&mut stream, &auth_reject).await?;
+            stream.shutdown(Shutdown::Both);
+            return Err(BidError::PlayerNotFoundByName);
+        },
+        Ok(r) => {r},
+    };
+    println!("Result: {}", result.username);
+
+    let p = Player {
+        id: 0,
+        name: username,
+        wins: 0,
+        losses: 0,
+        in_game: false,
+        stream: stream.clone(),
+        player_cooldown: Utc::now()
+    };
+
+
+
     let mut ack = ServerRequest::new();
     ack.set_msgType(Comms::server_request::MsgType::ACK);
     send_proto_to_client(&mut stream, &ack).await;
 
-    let p = Player {
-        name,
-        wins: 0,
-        losses: 0,
-        in_game: false,
-        stream,
-        player_cooldown: Utc::now()
-    };
+
     pm_sender.send(Event::NewPlayer {player: p}).await;
 
 
     Ok(())
 }
 
-async fn accept_loop(addr: impl ToSocketAddrs) -> Result<()> {
+async fn accept_loop(addr: impl ToSocketAddrs, database: PathBuf) -> std::result::Result<(), BidError> {
 
-    let listener = TcpListener::bind(addr).await?;
+    let listener = match TcpListener::bind(addr).await {
+        Ok(l) => {l}
+        Err(_) => {return Err(BidError::ErrorBindingToInterface)}
+    };
     let mut incoming = listener.incoming();
+
+    let pool = SqlitePoolOptions::new().max_connections(10).connect(database.to_str().unwrap()).await.map_err(|_| BidError::DbCannotOpenDatabase)?;
 
     let (pm_sender, pm_receiver) : (Sender<Event>, Receiver<Event>) = mpsc::unbounded();
 
-    let pm = task::spawn(player_manager(pm_sender.clone(), pm_receiver));
+    let pm = task::spawn(player_manager(pm_sender.clone(), pm_receiver, pool.clone()));
 
     while let Some(stream) = incoming.next().await {
-        let stream = stream?;
+        let stream = match stream {
+            Ok(s) => {s}
+            Err(_) => {continue}
+        };
 
-        println!("Accepting connection from {}", stream.peer_addr()?);
-        let _handle = task::spawn(connection_loop(stream.clone(), pm_sender.clone()));
+        println!("Accepting connection from {:?}", stream.peer_addr());
+        let _handle = task::spawn(connection_loop(stream.clone(), pm_sender.clone(), pool.clone()));
     }
 
     Ok(())
@@ -816,17 +879,18 @@ fn recv_func(mut recvr: Receiver<Event>)
     println!("In the func!");
 }
 
-fn main() -> Result<()> {
+fn main() -> Result<(), BidError> {
 
-    let pool_broker_sender: Sender<Event>;
-    let pool_broker_receiver: Receiver<Event>;
+    let args = Args::parse();
+    println!("Args: {:?}", args);
+
     let (pool_broker_sender, pool_broker_receiver) : (Sender<Event>, Receiver<Event>) = mpsc::unbounded();
-    //let () = mpsc::unbounded();
+
     sender_func(pool_broker_sender);
-    //sender_func(pool_broker_receiver);
     recv_func(pool_broker_receiver);
-    println!("Hello, world!");
-    let fut = accept_loop("127.0.0.1:8080");
+    let connection_string = format!("{}:{}", args.interface, args.port);
+    let fut = accept_loop(connection_string, args.database);
+
     task::block_on(fut);
 
     Ok(())
