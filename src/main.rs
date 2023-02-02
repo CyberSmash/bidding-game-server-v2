@@ -33,6 +33,7 @@ use crate::protos::Comms::server_request::MsgType;
 mod proto_utils;
 use proto_utils::proto_utils::*;
 use player_management::player_management::*;
+use futures::channel::mpsc::SendError;
 
 type Sender<T> = mpsc::UnboundedSender<T>;
 type Receiver<T> = mpsc::UnboundedReceiver<T>;
@@ -442,28 +443,34 @@ async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Eve
                         let mut ge = Comms::GameEnd::new();
                         ge.set_result(Comms::game_end::GameResult::DRAW);
                         draw_msg.gameEnd = MessageField::some(ge);
+                        let results = join!(send_proto_to_client(&mut stream_a, &draw_msg),
+                            send_proto_to_client(&mut stream_b, &draw_msg).await);
 
-                        send_proto_to_client(&mut stream_a, &draw_msg).await;
-                        send_proto_to_client(&mut stream_b, &draw_msg).await;
+                        match results.0 {
+
+                        }
+                        match results.1 {
+
+                        }
 
                     }
                     GameStatus::Disconnect => {
                         println!("It looks like player {} disconnected.", game_result.loser);
                     }
                 }
-                pm_sender.send(Event::GameOver { result: game_result }).await;
+                pm_sender.send(Event::GameOver { result: game_result }).await.unwrap_or_else(|err| println!("Error sending to the player manager. {:?}", err);
                 thread::sleep(gm_backoff);
-                pm_sender.send(Event::NeedPlayers {id}).await;
+                pm_sender.send(Event::NeedPlayers {id}).await.unwrap_or_else(|err| println!("Error sending to the player manager. {:?}", err);
 
             }
             Event::Good {id} => {}
             Event::Bad => {
                 thread::sleep(gm_backoff);
-                pm_sender.send(Event::NeedPlayers {id}).await;
+                pm_sender.send(Event::NeedPlayers {id}).await.unwrap_or_else(|err| println!("Error sending to the player manager. {:?}", err))
             }
             _ => {}
-        }
-    }
+        } // match event
+    } // while loop
 }
 
 
@@ -484,7 +491,14 @@ async fn handle_need_players(players: &mut HashMap<String, Player>, gm_sender: &
     {
         None => {
             println!("I errored out trying to find a player. The player {} was suddenly not found.", free_players[0]);
-            gm_sender.send(Event::Bad).await;
+            match gm_sender.send(Event::Bad).await {
+                Ok(_) => {}
+                Err(e) => {
+                    // There's not much we can do about this. Just return and hope for the best.
+                    // There may be a case to return an error instead of a boolean.
+                    println!("I couldn't talk to the game manager due to error: {}", e);
+                }
+            };
             return false;
         }
         Some(p) => {p}
@@ -556,8 +570,19 @@ async fn player_manager(sender: Sender<Event>, mut receiver: Receiver<Event>, da
                         abort_msg.set_msgType(MsgType::GAME_ABORT);
 
                         println!("The player manager has been told that {} disconnected.", result.loser);
-                        players[&result.loser].stream.shutdown(Shutdown::Both);
-                        send_proto_to_client_by_name(&mut players, &result.winner, abort_msg).await;
+                        players[&result.loser].stream.shutdown(Shutdown::Both).ok();
+                        match send_proto_to_client_by_name(&mut players, &result.winner, abort_msg).await
+                        {
+                            Ok(_) => {}
+                            Err(e) => {
+                                match e {
+                                    BidError::PlayerNotFoundByName => {
+                                    }
+                                    _ => {}
+
+                                }
+                            }
+                        };
                         players.remove(&result.loser);
                     }
                     GameStatus::Completed => {
@@ -654,7 +679,7 @@ async fn connection_loop(mut stream: TcpStream, mut pm_sender: Sender<Event>, da
             auth_reject.set_msgType(MsgType::AUTH_REJECT);
 
             send_proto_to_client(&mut stream, &auth_reject).await?;
-            stream.shutdown(Shutdown::Both);
+            stream.shutdown(Shutdown::Both).ok();
             return Err(BidError::PlayerNotFoundByName);
         },
         Ok(r) => {r},
@@ -675,11 +700,16 @@ async fn connection_loop(mut stream: TcpStream, mut pm_sender: Sender<Event>, da
 
     let mut ack = ServerRequest::new();
     ack.set_msgType(Comms::server_request::MsgType::ACK);
-    send_proto_to_client(&mut stream, &ack).await;
+    send_proto_to_client(&mut stream, &ack).await?;
 
 
-    pm_sender.send(Event::NewPlayer {player: p}).await;
-
+    match pm_sender.send(Event::NewPlayer {player: p}).await {
+        Ok(_) => {}
+        Err(e) => {
+            println!("Connection loop has lost connection to the player manager with error {:?}", e);
+            return Err(BidError::PlayerManagerSendFailed);
+        }
+    };
 
     Ok(())
 }
@@ -711,31 +741,16 @@ async fn accept_loop(addr: impl ToSocketAddrs, database: PathBuf) -> std::result
     Ok(())
 }
 
-
-fn sender_func(mut sender: Sender<Event>)
-{
-    sender.send(Event::Bad);
-
-}
-
-fn recv_func(mut recvr: Receiver<Event>)
-{
-    println!("In the func!");
-}
-
 fn main() -> Result<(), BidError> {
 
     let args = Args::parse();
     println!("Args: {:?}", args);
 
     let (pool_broker_sender, pool_broker_receiver) : (Sender<Event>, Receiver<Event>) = mpsc::unbounded();
-
-    sender_func(pool_broker_sender);
-    recv_func(pool_broker_receiver);
     let connection_string = format!("{}:{}", args.interface, args.port);
     let fut = accept_loop(connection_string, args.database);
 
-    task::block_on(fut);
+    task::block_on(fut)?;
 
     Ok(())
 }

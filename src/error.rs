@@ -17,6 +17,7 @@ pub enum BidError {
     DbCannotOpenDatabase,
     PlayerAAbandoned,
     PlayerBAbandoned,
+    ErrorSendingToPlayerManager,
 }
 
 impl std::error::Error for BidError {}
@@ -38,6 +39,7 @@ impl fmt::Display for BidError {
             BidError::ErrorBindingToInterface => write!(f, "Error binding interface / port."),
             BidError::PlayerAAbandoned => write!(f, "Player A abandoned the game."),
             BidError::PlayerBAbandoned => write!(f, "Player B abandoned the game."),
+            BidError::ErrorSendingToPlayerManager => write!(f, "Connection loop was unable to communicate with the player manager."),
 
         }
     }
