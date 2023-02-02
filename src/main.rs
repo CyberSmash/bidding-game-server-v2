@@ -6,7 +6,6 @@ use async_std::{
 
 use sqlx::sqlite::{SqlitePoolOptions, Sqlite, SqlitePool};
 use std::{thread};
-
 use futures::{join, StreamExt};
 
 use futures::channel::mpsc;
@@ -21,9 +20,19 @@ use std::time::Duration;
 use protobuf::{Message, MessageField};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 mod protos;
+mod player_management;
 use clap::{Parser};
 use protos::Comms;
 use std::path::PathBuf;
+mod error;
+
+use error::BidError;
+use crate::Comms::ServerRequest;
+use crate::protos::Comms::bid_result::RoundResultType;
+use crate::protos::Comms::server_request::MsgType;
+mod proto_utils;
+use proto_utils::proto_utils::*;
+use player_management::player_management::*;
 
 type Sender<T> = mpsc::UnboundedSender<T>;
 type Receiver<T> = mpsc::UnboundedReceiver<T>;
@@ -31,11 +40,11 @@ type Receiver<T> = mpsc::UnboundedReceiver<T>;
 
 
 const SOCKET_READ_TIMEOUT: Duration = Duration::from_millis(500);
-const CLIENT_ERROR_MAX: u32 = 3;
 const MAX_GAME_ROUNDS: u32 = 10;
 const BOTTLE_MIN: u32 = 0;
 const BOTTLE_MAX: u32 = 10;
 const MAX_BID_ERRORS: u32 = 3;
+
 enum GameStatus {
     Abandoned,
     Completed,
@@ -43,12 +52,7 @@ enum GameStatus {
     Disconnect,
 }
 
-mod error;
 
-use error::BidError;
-use crate::Comms::ServerRequest;
-use crate::protos::Comms::bid_result::RoundResultType;
-use crate::protos::Comms::server_request::MsgType;
 
 enum Event {
     NewPlayer {
@@ -100,7 +104,7 @@ struct DatabaseUser {
 
 // The player managers representation of a player. This is the authoritative
 // copy of the player information.
-struct Player {
+pub struct Player {
     id: i32,
     name: String,
     wins: u64,
@@ -111,7 +115,7 @@ struct Player {
 }
 
 // Only the info that the Game Master needs of a player.
-struct GMPlayer {
+pub struct GMPlayer {
     name: String,
     stream: TcpStream,
 }
@@ -134,95 +138,6 @@ struct Args {
     port: String
 }
 
-fn get_player_info_for_game(players: &mut HashMap<String, Player>, player_name: &String) -> Option<GMPlayer> {
-
-    return match players.entry(player_name.clone())
-    {
-        Entry::Occupied(mut ent) => {
-            let p = ent.get_mut();
-            p.in_game = true;
-            Some(GMPlayer { name: p.name.clone(), stream: p.stream.clone() })
-        }
-        Entry::Vacant(_) => { None }
-    };
-}
-
-
-async fn send_proto_to_client(stream: &mut TcpStream, msg: &Comms::ServerRequest) -> std::result::Result<(), BidError> {
-    let final_msg = match  msg.write_length_delimited_to_bytes().map_err(|_| BidError::ErrorProtobufEncoding) {
-        Ok(m) => {m}
-        Err(e) => {
-            println!("[-] I ran into an error encoding protobuffer.");
-            return Err(e);
-        }
-    };
-
-    match stream.write_all(final_msg.as_slice()).await.map_err(|_| BidError::ErrorOnSend) {
-        Ok(_) => {}
-        Err(e) => {
-            println!("[-] Error writing proto buffer.");
-            return Err(e);
-        }
-    };
-    Ok(())
-
-}
-
-async fn send_proto_to_client_by_name(players: &mut HashMap<String, Player>, player_name: &String, msg: Comms::ServerRequest) -> std::result::Result<(), BidError> {
-    return match players.entry(player_name.to_string()) {
-        Entry::Occupied(mut player_entry) => {
-            let player = player_entry.get_mut();
-            send_proto_to_client(&mut player.stream, &msg).await?;
-            Ok(())
-        }
-        Entry::Vacant(_) => {
-            println!("I can't find the player {} to send a message to.", player_name);
-            Err(BidError::PlayerNotFoundByName)
-        }
-    }
-}
-
-
-async fn read_varint_from_stream(mut stream: &TcpStream) -> std::result::Result<i32, BidError> {
-    let mut result: i32 = 0;
-    let mut shift = 0;
-    let mut buffer = vec![0u8; 1];
-    loop {
-        match async_std::io::timeout(SOCKET_READ_TIMEOUT, stream.read_exact(&mut buffer)).await
-        {
-            Ok(_) => {}
-            Err(e) => {
-                println!("Error reading varint: {:?}", e);
-                return Err(BidError::ErrorOnRead);
-            }
-        };
-        result |= ((buffer[0] & 0x7F) << shift) as i32;
-        shift += 7;
-
-        if !(buffer[0] & 0x80 > 0) {
-            break;
-        }
-    }
-    Ok(result)
-}
-
-
-async fn read_proto_from_client(mut stream: &TcpStream) -> std::result::Result<Comms::ServerRequest, BidError> {
-    // Get the size of the data first.
-    let num_bytes = read_varint_from_stream(stream).await?;
-
-    if num_bytes <= 0 {
-        return Err(BidError::ErrorOnRead);
-    }
-
-    let mut raw_data = vec![0u8; num_bytes as usize];
-
-    // Read in the bytes from the stream
-    async_std::io::timeout(SOCKET_READ_TIMEOUT, stream.read_exact(&mut raw_data)).await.map_err(|_| BidError::PlayerTimedOut)?;
-
-    let server_request =  Comms::ServerRequest::parse_from_bytes(raw_data.as_slice()).map_err(|_| BidError::ProtoParseError)?;
-    Ok(server_request)
-}
 
 async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> std::result::Result<u32, BidError> {
 
@@ -270,7 +185,8 @@ async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> 
                         continue;
                     }
                     BidError::ErrorOnRead => {
-                        // In this case the client has likely closed the connection.
+                        // In this case the client has likely closed the connection. They get no
+                        // more chances.
                         println!("Client has gone away while getting a bid.");
                         return Err(e);
                     }
@@ -305,37 +221,6 @@ async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> 
         }
     }
     return Err(BidError::MaxBidErrorsReached);
-}
-
-fn make_start_proto(player_a_name: String, player_a_money: u32, player_b_name: String, player_b_money: u32) -> ServerRequest
-{
-    let mut start_msg = ServerRequest::new();
-    start_msg.set_msgType(Comms::server_request::MsgType::GAME_START);
-
-    let mut gs = Comms::GameStart::new();
-    //start_msg.
-
-    gs.set_player1_name(player_a_name);
-    gs.set_player2_name(player_b_name);
-    gs.set_player1_start_money(player_a_money);
-    gs.set_player2_start_money(player_b_money);
-    start_msg.gameStart = MessageField::some(gs);
-    return start_msg;
-}
-
-
-fn make_round_start_proto(round_num: u32, player_a_money: u32, player_b_money: u32, bottle_pos: u32) -> ServerRequest {
-    let mut round_msg = ServerRequest::new();
-    round_msg.set_msgType(MsgType::ROUND_START);
-    let mut round_start = Comms::RoundStart::new();
-    round_start.set_round_num(round_num);
-    round_start.set_player_a_money(player_a_money);
-    round_start.set_player_b_money(player_b_money);
-    round_start.set_bottle_pos(bottle_pos);
-
-    round_msg.roundStart = MessageField::some(round_start);
-
-    return round_msg;
 }
 
 
@@ -582,46 +467,6 @@ async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Eve
     }
 }
 
-
-async fn get_free_players(players: &mut HashMap<String, Player>) -> Vec<String>
-{
-    let mut ready_players: Vec<String> = vec!();
-    let mut dead_players: Vec<String> = vec!();
-    let current_time = Utc::now();
-    let mut alive_msg = ServerRequest::new();
-    alive_msg.set_msgType(MsgType::ALIVE);
-    for (name, player) in players.into_iter() {
-        if !player.in_game && player.player_cooldown < current_time {
-            match send_proto_to_client(&mut player.stream.clone(), &alive_msg).await {
-                Ok(_) => {}
-                Err(_) => {
-                    dead_players.push(player.name.clone());
-                    continue;
-                }
-            }
-
-            // We don't really care what they respond with as long as they respond with something.
-            match read_proto_from_client(&mut player.stream.clone()).await {
-                Ok(r) => { r }
-                Err(_) => {
-                    dead_players.push(player.name.clone());
-                    continue;
-                }
-            };
-
-            // In this case we have found a player who can play the next game.
-            ready_players.push(name.clone());
-        }
-    }
-
-    // Before we go, remove any players who are dead.
-    for dead_player in dead_players {
-        println!("Pruning {} as they have gone away.", dead_player);
-        players.remove(dead_player.as_str());
-    }
-
-    return ready_players;
-}
 
 async fn handle_need_players(players: &mut HashMap<String, Player>, gm_sender: &mut Sender<Event>) -> bool {
     let free_players = get_free_players(players).await;
