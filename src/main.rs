@@ -225,7 +225,7 @@ async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> 
 
 
 async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
-                  stream_b: &mut TcpStream, name_b: &String) -> GameResult {
+                  stream_b: &mut TcpStream, name_b: &String) -> std::result::Result<GameResult, BidError> {
     let mut player_a_money_left = 100;
     let mut player_b_money_left = 100;
     let mut bottle_position: u32 = 5;
@@ -259,11 +259,13 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
                                              send_proto_to_client(stream_b, &start_msg));
     match results.0 {
         Ok(_) => {}
-        Err(_) => { return gr_a_abandoned; }
+        Err(_) => {
+            return Err(BidError::PlayerAAbandoned);
+        }
     }
     match results.1 {
         Ok(_) => {}
-        Err(_) => { return gr_b_abandoned; }
+        Err(_) => { return Err(BidError::PlayerBAbandoned); }
     }
 
     for round in 0..MAX_GAME_ROUNDS {
@@ -273,11 +275,11 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
 
         match results.0  {
             Ok(_) => {}
-            Err(_) => { return gr_a_abandoned; }
+            Err(_) => { return Err(BidError::PlayerAAbandoned); }
         }
         match results.1 {
             Ok(_) => {}
-            Err(_) => { return gr_b_abandoned; }
+            Err(_) => { return Err(BidError::PlayerBAbandoned); }
         }
 
         if bottle_position == BOTTLE_MIN || bottle_position == BOTTLE_MAX {
@@ -291,36 +293,14 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
                 gr.loser = name_b.clone();
             }
 
-            return gr;
+            return Ok(gr);
         }
 
-
-        // @TODO We should provide a position at this point.
         let bids = join!(get_bid_from_client(stream_a, player_a_money_left),
             get_bid_from_client(stream_b, player_b_money_left));
 
-
-
-        let bid_a = match bids.0 {
-            Ok(bid) => {
-                bid
-            }
-            Err(_) => {
-                return gr_a_abandoned;
-            }
-        };
-
-        let bid_b = match bids.1
-        {
-            Ok(bid) => {
-                bid
-            }
-            Err(e) => {
-                println!("Could not get bid from {}. Abandon game. {:?}", name_b, e);
-                return gr_b_abandoned;
-            }
-
-        };
+        let bid_a = bids.0.map_err(|x| BidError::PlayerAAbandoned)?;
+        let bid_b = bids.1.map_err(|x| BidError::PlayerBAbandoned)?;
 
 
         let mut winner_name = String::new();
@@ -354,28 +334,14 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
         br.set_result_type(if bid_a != bid_b { RoundResultType::WIN} else {RoundResultType::DRAW});
         bid_result.bidResult = MessageField::some(br);
 
-        match send_proto_to_client(stream_a, &bid_result).await {
-            Ok(_) => {}
-            Err(e) => {
-                println!("Player {} has disconnected: {:?}", name_a, e);
-                return gr_a_abandoned;
-            }
-        }
-
-        match send_proto_to_client(stream_b, &bid_result).await {
-            Ok(_) => {}
-            Err(e) => {
-                println!("Player {} has disconnected {:?}", name_a, e);
-                return gr_b_abandoned;
-            }
-
-        }
+        send_proto_to_client(stream_a, &bid_result).await.map_err(|x| BidError::PlayerAAbandoned)?;
+        send_proto_to_client(stream_b, &bid_result).await.map_err(|x| BidError::PlayerBAbandoned)?
 
 
     } // end for-loop
 
     println!("The game has finished and we are returning the result.");
-    gr
+    Ok(gr)
 }
 
 async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Event>, id: u32)
@@ -388,7 +354,40 @@ async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Eve
         match event {
             Event::NewPlayer { .. } => {}
             Event::NewGame { name_a, name_b, mut stream_a, mut stream_b } => {
-                let game_result = run_game(id, &mut stream_a, &name_a, &mut stream_b, &name_b).await;
+                let game_result = match run_game(id, &mut stream_a, &name_a, &mut stream_b, &name_b).await {
+                    Ok(gr) => gr,
+                    Err(e) => {
+                        let mut gr = GameResult {
+                            id,
+                            winner: "".to_string(),
+                            loser: "".to_string(),
+                            status: GameStatus::Abandoned,
+                        };
+                        match e {
+                            BidError::PlayerAAbandoned => {
+                                println!("It looks like player {} disconnected before the game could be finished.", name_a);
+                                gr.winner = name_b;
+                                gr.loser = name_a;
+                            }
+                            BidError::PlayerBAbandoned => {
+                                println!("It looks like player {} disconnected before the game could be finished.", name_b);
+                                gr.winner = name_a;
+                                gr.loser = name_b;
+                            }
+                            _ => {
+                                println!("Unexpected error from run_game: {:?}", e);
+                                // TODO: This should do something with the game result to indicate
+                                // an unknown error.
+                            }
+                        }
+
+                        // TODO: Handle these possible problems.
+                        pm_sender.send(Event::GameOver { result: gr }).await;
+                        thread::sleep(gm_backoff);
+                        pm_sender.send(Event::NeedPlayers {id}).await;
+                        continue;
+                    }
+                };
                 match game_result.status {
                     GameStatus::Abandoned => {
                         println!("It looks like player {} disconnected before we could finish the game.", game_result.loser);

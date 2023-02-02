@@ -15,6 +15,8 @@ pub enum BidError {
     PlayerTimedOut,
     DbCannotPrepStatement,
     DbCannotOpenDatabase,
+    PlayerAAbandoned,
+    PlayerBAbandoned,
 }
 
 impl std::error::Error for BidError {}
@@ -34,6 +36,8 @@ impl fmt::Display for BidError {
             BidError::DbCannotOpenDatabase => write!(f, "Could not open database file."),
             BidError::DbCannotPrepStatement => write!(f, "Could not prepare statement for database."),
             BidError::ErrorBindingToInterface => write!(f, "Error binding interface / port."),
+            BidError::PlayerAAbandoned => write!(f, "Player A abandoned the game."),
+            BidError::PlayerBAbandoned => write!(f, "Player B abandoned the game."),
 
         }
     }
