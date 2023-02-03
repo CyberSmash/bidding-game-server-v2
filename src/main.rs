@@ -25,15 +25,20 @@ use clap::{Parser};
 use protos::Comms;
 use std::path::PathBuf;
 mod error;
-
+use simple_logger;
 use error::BidError;
 use crate::Comms::ServerRequest;
 use crate::protos::Comms::bid_result::RoundResultType;
 use crate::protos::Comms::server_request::MsgType;
+use log::{warn, info, trace, error};
 mod proto_utils;
+mod game_master;
+
 use proto_utils::proto_utils::*;
 use player_management::player_management::*;
 use futures::channel::mpsc::SendError;
+use crate::game_master::game_master::craft_game_end_proto;
+use crate::GameResultType::PlayerAWins;
 
 type Sender<T> = mpsc::UnboundedSender<T>;
 type Receiver<T> = mpsc::UnboundedReceiver<T>;
@@ -46,14 +51,12 @@ const BOTTLE_MIN: u32 = 0;
 const BOTTLE_MAX: u32 = 10;
 const MAX_BID_ERRORS: u32 = 3;
 
+
 enum GameStatus {
-    Abandoned,
     Completed,
     Draw,
-    Disconnect,
+    Abandoned,
 }
-
-
 
 enum Event {
     NewPlayer {
@@ -71,11 +74,7 @@ enum Event {
     NeedPlayers {
         id: u32
     },
-    Good
-    {
-        id: u32,
-    },
-    Bad
+    NoPlayersAvailable
 }
 
 struct GameMasterInfo {
@@ -84,11 +83,21 @@ struct GameMasterInfo {
     receiver: Receiver<Event>,
 }
 
+enum GameResultType {
+    PlayerAWins,
+    PlayerBWins,
+    Draw,
+}
+
 struct GameResult
 {
+    // The ID of the game master.
     id: u32,
+    // The winner of the game if there is one
     winner: String,
+    // The loser of the game if there is one
     loser: String,
+    // The result of the game.
     status: GameStatus,
 }
 
@@ -226,29 +235,12 @@ async fn get_bid_from_client(stream: &mut TcpStream, player_money_left: u32) -> 
 
 
 async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
-                  stream_b: &mut TcpStream, name_b: &String) -> std::result::Result<GameResult, BidError> {
+                  stream_b: &mut TcpStream, name_b: &String) -> std::result::Result<GameResultType, BidError> {
     let mut player_a_money_left = 100;
     let mut player_b_money_left = 100;
     let mut bottle_position: u32 = 5;
     let mut draw_advantage = true;
-    let gr_a_abandoned = GameResult {
-        id: id,
-        winner: name_b.clone(),
-        loser: name_a.clone(),
-        status: GameStatus::Abandoned
-    };
-    let gr_b_abandoned = GameResult {
-        id,
-        winner: name_a.clone(),
-        loser: name_b.clone(),
-        status: GameStatus::Abandoned
-    };
-    let mut gr = GameResult {
-        id,
-        winner: name_a.clone(),
-        loser: name_b.clone(),
-        status: GameStatus::Draw,
-    };
+
 
     let start_msg = make_start_proto(name_a.clone(),
                                      player_b_money_left,
@@ -258,15 +250,12 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
 
     let results = join!(send_proto_to_client(stream_a, &start_msg),
                                              send_proto_to_client(stream_b, &start_msg));
-    match results.0 {
-        Ok(_) => {}
-        Err(_) => {
-            return Err(BidError::PlayerAAbandoned);
-        }
+
+    if results.0.is_err() {
+        return Err(BidError::PlayerAAbandoned);
     }
-    match results.1 {
-        Ok(_) => {}
-        Err(_) => { return Err(BidError::PlayerBAbandoned); }
+    if results.1.is_err() {
+        return Err(BidError::PlayerBAbandoned);
     }
 
     for round in 0..MAX_GAME_ROUNDS {
@@ -274,27 +263,23 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
 
         let results = join!(send_proto_to_client(stream_a, &round_start_msg), send_proto_to_client(stream_b, &round_start_msg));
 
-        match results.0  {
-            Ok(_) => {}
-            Err(_) => { return Err(BidError::PlayerAAbandoned); }
+        if results.0.is_err() {
+            return Err(BidError::PlayerAAbandoned);
         }
-        match results.1 {
-            Ok(_) => {}
-            Err(_) => { return Err(BidError::PlayerBAbandoned); }
+        if results.1.is_err() {
+            return Err(BidError::PlayerBAbandoned)
         }
 
         if bottle_position == BOTTLE_MIN || bottle_position == BOTTLE_MAX {
-            gr.status = GameStatus::Completed;
-            if bottle_position == BOTTLE_MIN {
-                gr.winner = name_b.clone();
-                gr.loser = name_a.clone();
+            return if bottle_position == BOTTLE_MIN {
+                //gr.winner = name_b.clone();
+                //gr.loser = name_a.clone();
+                Ok(GameResultType::PlayerBWins)
+            } else {
+                //gr.winner = name_a.clone();
+                //gr.loser = name_b.clone();
+                Ok(GameResultType::PlayerAWins)
             }
-            else {
-                gr.winner = name_a.clone();
-                gr.loser = name_b.clone();
-            }
-
-            return Ok(gr);
         }
 
         let bids = join!(get_bid_from_client(stream_a, player_a_money_left),
@@ -342,19 +327,29 @@ async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
     } // end for-loop
 
     println!("The game has finished and we are returning the result.");
-    Ok(gr)
+    Ok(GameResultType::Draw)
 }
 
 async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Event>, id: u32)
 {
-    let gm_backoff = Duration::from_millis(500);
+    let gm_backoff = Duration::from_millis(25);
+
+
     println!("Game Master: {} is alive!", id);
 
     pm_sender.send(Event::NeedPlayers {id}).await;
     while let Some(event) = gm_receiver.next().await {
+
+        let mut gr = GameResult {
+            id,
+            winner: "".to_string(),
+            loser: "".to_string(),
+            status: GameStatus::Completed
+        };
+
         match event {
-            Event::NewPlayer { .. } => {}
             Event::NewGame { name_a, name_b, mut stream_a, mut stream_b } => {
+                println!("GM: {} Got new players {} {}", id, name_a, name_b);
                 let game_result = match run_game(id, &mut stream_a, &name_a, &mut stream_b, &name_b).await {
                     Ok(gr) => gr,
                     Err(e) => {
@@ -364,6 +359,9 @@ async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Eve
                             loser: "".to_string(),
                             status: GameStatus::Abandoned,
                         };
+
+                        gr.winner = if matches!(e, BidError::PlayerAAbandoned) {name_b.clone()} else {name_a.clone()};
+                        gr.loser = if matches!(e, BidError::PlayerAAbandoned) {name_a.clone()} else {name_b.clone()};
                         match e {
                             BidError::PlayerAAbandoned => {
                                 println!("It looks like player {} disconnected before the game could be finished.", name_a);
@@ -389,82 +387,62 @@ async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Eve
                         continue;
                     }
                 };
-                match game_result.status {
-                    GameStatus::Abandoned => {
-                        println!("It looks like player {} disconnected before we could finish the game.", game_result.loser);
-                    }
-                    GameStatus::Completed => {
-                        let mut winner_message = ServerRequest::new();
-                        let mut loser_message = ServerRequest::new();
+                match game_result {
+                    GameResultType::PlayerAWins | GameResultType::PlayerBWins => {
 
+                        let mut winner_message = craft_game_end_proto(Comms::game_end::GameResult::WIN);
+                        let mut loser_message = craft_game_end_proto(Comms::game_end::GameResult::LOSS);
 
-                        winner_message.set_msgType(MsgType::GAME_END);
-                        loser_message.set_msgType(MsgType::GAME_END);
-
-                        // Make a game end message.
-                        let mut ge = Comms::GameEnd::new();
-                        ge.set_result(Comms::game_end::GameResult::WIN);
-
-                        // Give the cloned version to the winner message.
-                        winner_message.gameEnd = MessageField::some(ge.clone());
-
-                        // Reuse the game end message for the loss message.
-                        ge.set_result(Comms::game_end::GameResult::LOSS);
-                        loser_message.gameEnd = MessageField::some(ge);
-
-                        if game_result.winner == name_a {
-                            let results = join!(send_proto_to_client(&mut stream_a, &winner_message),
+                        let mut results;
+                        warn!("GM: {} We have a winning scenario. Returning result.", id);
+                        if matches!(game_result, GameResultType::PlayerAWins) {
+                            results = join!(send_proto_to_client(&mut stream_a, &winner_message),
                                 send_proto_to_client(&mut stream_b, &loser_message));
-                            match results.0 {
-                                Ok(_) => {}
-                                Err(_) => {
-                                    // @TODO: We clearly need a way to tell the player manager
-                                    // in a better way that a player has disconnected.
-                                    println!("I lost player_a")
-                                }
-
-                            }
-
-                            match results.1 {
-                                Ok(_) => {}
-                                Err(_) => {
-                                    // @TODO: We clearly need a way to tell the player manager
-                                    // in a better way that a player has disconnected.
-                                    println!("I lost player_b")
-                                }
-                            }
+                            gr.winner = name_a;
+                            gr.loser = name_b;
+                            gr.status = GameStatus::Completed;
+                        }
+                        else {
+                            results = join!(send_proto_to_client(&mut stream_b, &winner_message),
+                                send_proto_to_client(&mut stream_a, &loser_message));
+                            gr.winner = name_b;
+                            gr.loser = name_a;
+                            gr.status = GameStatus::Completed;
                         }
 
 
+                        results.0.unwrap_or_else(|err| {
+                            // @TODO: We clearly need a way to tell the player manager
+                            // in a better way that a player has disconnected.
+                            warn!("I lost player_a")
+                        });
+
+                        results.1.unwrap_or_else(|err| {
+                            // @TODO: We clearly need a way to tell the player manager
+                            // in a better way that a player has disconnected.
+                            warn!("I lost player_b")
+                        });
                     }
-                    GameStatus::Draw => {
+                    GameResultType::Draw => {
                         let mut draw_msg = ServerRequest::new();
                         draw_msg.set_msgType(MsgType::GAME_END);
                         let mut ge = Comms::GameEnd::new();
                         ge.set_result(Comms::game_end::GameResult::DRAW);
                         draw_msg.gameEnd = MessageField::some(ge);
                         let results = join!(send_proto_to_client(&mut stream_a, &draw_msg),
-                            send_proto_to_client(&mut stream_b, &draw_msg).await);
-
-                        match results.0 {
-
-                        }
-                        match results.1 {
-
-                        }
-
-                    }
-                    GameStatus::Disconnect => {
-                        println!("It looks like player {} disconnected.", game_result.loser);
+                            send_proto_to_client(&mut stream_b, &draw_msg));
+                        gr.winner = name_a;
+                        gr.loser = name_b;
+                        gr.status = GameStatus::Draw;
                     }
                 }
-                pm_sender.send(Event::GameOver { result: game_result }).await.unwrap_or_else(|err| println!("Error sending to the player manager. {:?}", err);
+                warn!("GM {} the game is over and I'm returning the results.", id);
+                pm_sender.send(Event::GameOver { result: gr }).await.unwrap_or_else(|err| println!("Error sending to the player manager. {:?}", err));
                 thread::sleep(gm_backoff);
-                pm_sender.send(Event::NeedPlayers {id}).await.unwrap_or_else(|err| println!("Error sending to the player manager. {:?}", err);
+                pm_sender.send(Event::NeedPlayers {id}).await.unwrap_or_else(|err| println!("Error sending to the player manager. {:?}", err));
 
             }
-            Event::Good {id} => {}
-            Event::Bad => {
+            Event::NoPlayersAvailable => {
                 thread::sleep(gm_backoff);
                 pm_sender.send(Event::NeedPlayers {id}).await.unwrap_or_else(|err| println!("Error sending to the player manager. {:?}", err))
             }
@@ -478,7 +456,7 @@ async fn handle_need_players(players: &mut HashMap<String, Player>, gm_sender: &
     let free_players = get_free_players(players).await;
 
     if free_players.len() < 2 {
-        match gm_sender.send(Event::Bad).await
+        match gm_sender.send(Event::NoPlayersAvailable).await
         {
             Ok(_) => {}
             Err(e) => {
@@ -491,7 +469,7 @@ async fn handle_need_players(players: &mut HashMap<String, Player>, gm_sender: &
     {
         None => {
             println!("I errored out trying to find a player. The player {} was suddenly not found.", free_players[0]);
-            match gm_sender.send(Event::Bad).await {
+            match gm_sender.send(Event::NoPlayersAvailable).await {
                 Ok(_) => {}
                 Err(e) => {
                     // There's not much we can do about this. Just return and hope for the best.
@@ -596,11 +574,10 @@ async fn player_manager(sender: Sender<Event>, mut receiver: Receiver<Event>, da
                             .bind(result.loser.clone())
                             .execute(&mut *db_connection).await.unwrap();
                     }
-                    GameStatus::Disconnect => {}
                 }
                 if let Some(peer) = players.get_mut(&result.winner) {
                     println!("Player {} has returned to the pool.", result.winner);
-                    peer.player_cooldown = Utc::now() + chrono::Duration::seconds(rng.gen_range(1..10));
+                    peer.player_cooldown = Utc::now();// + chrono::Duration::seconds(rng.gen_range(1..10));
                     peer.in_game = false;
                     peer.wins += 1;
                     sqlx::query("UPDATE players SET wins = wins + 1 where username = ?").bind(result.winner).execute(&mut *db_connection).await.unwrap();
@@ -609,7 +586,7 @@ async fn player_manager(sender: Sender<Event>, mut receiver: Receiver<Event>, da
                 if let Some(peer) = players.get_mut(&result.loser)
                 {
                     println!("Player {} has been returned to the pool.", result.loser);
-                    peer.player_cooldown = Utc::now() + chrono::Duration::seconds(rng.gen_range(1..10));
+                    peer.player_cooldown = Utc::now(); // + chrono::Duration::seconds(rng.gen_range(1..10));
                     peer.in_game = false;
                     peer.losses += 1;
                     sqlx::query("UPDATE players SET wins = losses + 1 where username = ?").bind(result.loser).execute(&mut *db_connection).await.unwrap();
@@ -628,9 +605,6 @@ async fn player_manager(sender: Sender<Event>, mut receiver: Receiver<Event>, da
                 handle_need_players(&mut players, gm_sender).await;
 
             }
-
-            Event::Good {id} => { println!("Received Good from {}", id)}
-            Event::Bad => {}
             _ => {}
         }
     }
@@ -742,7 +716,7 @@ async fn accept_loop(addr: impl ToSocketAddrs, database: PathBuf) -> std::result
 }
 
 fn main() -> Result<(), BidError> {
-
+    simple_logger::init_with_level(log::Level::Info).unwrap();
     let args = Args::parse();
     println!("Args: {:?}", args);
 
