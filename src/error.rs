@@ -15,6 +15,7 @@ pub enum BidError {
     PlayerTimedOut,
     DbCannotPrepStatement,
     DbCannotOpenDatabase,
+    DbCannotExecuteQuery,
     PlayerAAbandoned,
     PlayerBAbandoned,
     ErrorSendingToPlayerManager,
@@ -40,6 +41,7 @@ impl fmt::Display for BidError {
             BidError::PlayerAAbandoned => write!(f, "Player A abandoned the game."),
             BidError::PlayerBAbandoned => write!(f, "Player B abandoned the game."),
             BidError::ErrorSendingToPlayerManager => write!(f, "Connection loop was unable to communicate with the player manager."),
+            BidError::DbCannotExecuteQuery => write!(f, "Failed to execute DB query."),
 
         }
     }

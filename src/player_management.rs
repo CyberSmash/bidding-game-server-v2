@@ -1,7 +1,5 @@
 pub mod player_management {
     use crate::Player;
-    use crate::protos;
-    use protos::Comms;
     use crate::Comms::ServerRequest;
     use crate::protos::Comms::server_request::MsgType;
     use chrono::{Utc};
@@ -16,7 +14,6 @@ pub mod player_management {
     /// This is used to look up a player by name and get a structure that the Game Manager knows
     /// how to read.
     pub fn get_player_info_for_game(players: &mut HashMap<String, Player>, player_name: &String) -> Option<GMPlayer> {
-
         return match players.entry(player_name.clone())
         {
             Entry::Occupied(mut ent) => {

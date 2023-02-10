@@ -7,6 +7,8 @@ pub mod proto_utils {
         prelude::*,
 
     };
+    use log::{warn};
+
     use std::{
         collections::hash_map::{HashMap, Entry},
     };
@@ -57,7 +59,7 @@ pub mod proto_utils {
             {
                 Ok(_) => {}
                 Err(e) => {
-                    println!("Error reading varint: {:?}", e);
+                    warn!("Error reading varint: {:?}", e);
                     return Err(BidError::ErrorOnRead);
                 }
             };
@@ -162,7 +164,6 @@ pub mod proto_utils {
 
         return round_msg;
     }
-
 
 
 }
