@@ -168,13 +168,6 @@ fn calc_elo(r1: u32, r2: u32, result: GameResultType) -> (u32, u32) {
 }
 
 
-
-
-
-
-
-
-
 async fn handle_need_players(players: &mut HashMap<String, Player>, gm_sender: &mut Sender<Event>) -> bool {
     let free_players = get_free_players(players).await;
 
@@ -402,9 +395,9 @@ async fn connection_loop(mut stream: TcpStream, mut pm_sender: Sender<Event>, da
             return Err(BidError::DbCannotOpenDatabase);
         }
     };
-    let result = match sqlx::query_as::<_, DatabaseUser>("SELECT * from players WHERE username = ?").bind(username.to_owned()).fetch_one(&mut *conn).await {
+    let _ = match sqlx::query_as::<_, DatabaseUser>("SELECT * from players WHERE username = ?").bind(username.to_owned()).fetch_one(&mut *conn).await {
         Err(e) => {
-            warn!("Rejected authentication from {}", username);
+            warn!("Rejected authentication from {} -- reason: {}", username, e);
             let mut auth_reject = ServerRequest::new();
             auth_reject.set_msgType(MsgType::AUTH_REJECT);
 
@@ -412,7 +405,7 @@ async fn connection_loop(mut stream: TcpStream, mut pm_sender: Sender<Event>, da
             stream.shutdown(Shutdown::Both).ok();
             return Err(BidError::PlayerNotFoundByName);
         },
-        Ok(r) => {r},
+        Ok(result) => {result},
     };
 
 
@@ -459,7 +452,7 @@ async fn accept_loop(addr: impl ToSocketAddrs, database: PathBuf) -> std::result
 
     let (pm_sender, pm_receiver) : (Sender<Event>, Receiver<Event>) = mpsc::unbounded();
 
-    let pm = task::spawn(player_manager(pm_sender.clone(), pm_receiver, pool.clone()));
+    let _pm = task::spawn(player_manager(pm_sender.clone(), pm_receiver, pool.clone()));
 
     while let Some(stream) = incoming.next().await {
         let stream = match stream {
@@ -480,7 +473,7 @@ fn main() -> Result<(), BidError> {
     let args = Args::parse();
     trace!("Args: {:?}", args);
 
-    let (pool_broker_sender, pool_broker_receiver) : (Sender<Event>, Receiver<Event>) = mpsc::unbounded();
+    //let (pool_broker_sender, pool_broker_receiver) : (Sender<Event>, Receiver<Event>) = mpsc::unbounded();
     let connection_string = format!("{}:{}", args.interface, args.port);
     let fut = accept_loop(connection_string, args.database);
 

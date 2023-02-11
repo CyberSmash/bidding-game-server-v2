@@ -108,7 +108,7 @@ pub mod game_master {
     }
 
 
-    async fn run_game(id: u32, stream_a: &mut TcpStream, name_a: &String,
+    async fn run_game(_id: u32, stream_a: &mut TcpStream, name_a: &String,
                       stream_b: &mut TcpStream, name_b: &String) -> std::result::Result<GameResultType, BidError> {
         let mut player_a_money_left = 100;
         let mut player_b_money_left = 100;
@@ -198,6 +198,87 @@ pub mod game_master {
         Ok(GameResultType::Draw)
     }
 
+    pub fn create_game_result_abandoned(id: u32, name_a: String, name_b: String, e: BidError) -> GameResult {
+        let mut gr = GameResult {
+            id,
+            winner: "".to_string(),
+            loser: "".to_string(),
+            status: GameStatus::Abandoned,
+        };
+
+        gr.winner = if matches!(e, BidError::PlayerAAbandoned) {name_b.clone()} else {name_a.clone()};
+        gr.loser = if matches!(e, BidError::PlayerAAbandoned) {name_a.clone()} else {name_b.clone()};
+        match e {
+            BidError::PlayerAAbandoned => {
+                warn!("It looks like player {} disconnected before the game could be finished.", name_a);
+                gr.winner = name_b;
+                gr.loser = name_a;
+            }
+            BidError::PlayerBAbandoned => {
+                warn!("It looks like player {} disconnected before the game could be finished.", name_b);
+                gr.winner = name_a;
+                gr.loser = name_b;
+            }
+            _ => {
+                println!("Unexpected error from run_game: {:?}", e);
+                // TODO: This should do something with the game result to indicate
+                // an unknown error.
+            }
+        }
+
+        gr
+    }
+
+    pub async fn handle_player_winning_result(id: u32, name_a: String, stream_a: &mut TcpStream,
+                                              name_b: String, stream_b: &mut TcpStream,
+                                              game_result: GameResultType) -> Result<GameResult, BidError> {
+        let mut gr = GameResult {
+            id,
+            winner: "".to_string(),
+            loser: "".to_string(),
+            status: GameStatus::Completed,
+        };
+        let winner_message = craft_game_end_proto(Comms::game_end::GameResult::WIN);
+        let loser_message = craft_game_end_proto(Comms::game_end::GameResult::LOSS);
+
+        let results;
+        warn!("GM: {} We have a winning scenario. Returning result.", id);
+        if matches!(game_result, GameResultType::PlayerAWins) {
+            results = join!(send_proto_to_client(stream_a, &winner_message),
+                                send_proto_to_client(stream_b, &loser_message));
+            gr.winner = name_a;
+            gr.loser = name_b;
+        }
+        else {
+            results = join!(send_proto_to_client(stream_b, &winner_message),
+                                send_proto_to_client(stream_a, &loser_message));
+            gr.winner = name_b;
+            gr.loser = name_a;
+        }
+
+
+        match results.0 {
+            Err(e) => {
+                warn!("I lost player_a -- Reason {}", e);
+                return Err(e);
+            }
+            Ok(_) => {}
+
+        }
+
+        match results.1 {
+            Err(e) => {
+                warn!("I lost player_b -- Reason: {}", e);
+                return Err(e);
+            }
+            Ok(_) => {}
+        }
+
+        Ok(gr)
+    }
+
+
+
     pub async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Event>, id: u32)
     {
         let gm_backoff = Duration::from_millis(25);
@@ -215,7 +296,7 @@ pub mod game_master {
                 id,
                 winner: "".to_string(),
                 loser: "".to_string(),
-                status: GameStatus::Completed
+                status: GameStatus::Completed,
             };
 
             match event {
@@ -224,34 +305,12 @@ pub mod game_master {
                     let game_result = match run_game(id, &mut stream_a, &name_a, &mut stream_b, &name_b).await {
                         Ok(gr) => gr,
                         Err(e) => {
-                            let mut gr = GameResult {
-                                id,
-                                winner: "".to_string(),
-                                loser: "".to_string(),
-                                status: GameStatus::Abandoned,
-                            };
 
-                            gr.winner = if matches!(e, BidError::PlayerAAbandoned) {name_b.clone()} else {name_a.clone()};
-                            gr.loser = if matches!(e, BidError::PlayerAAbandoned) {name_a.clone()} else {name_b.clone()};
-                            match e {
-                                BidError::PlayerAAbandoned => {
-                                    warn!("It looks like player {} disconnected before the game could be finished.", name_a);
-                                    gr.winner = name_b;
-                                    gr.loser = name_a;
-                                }
-                                BidError::PlayerBAbandoned => {
-                                    warn!("It looks like player {} disconnected before the game could be finished.", name_b);
-                                    gr.winner = name_a;
-                                    gr.loser = name_b;
-                                }
-                                _ => {
-                                    println!("Unexpected error from run_game: {:?}", e);
-                                    // TODO: This should do something with the game result to indicate
-                                    // an unknown error.
-                                }
-                            }
+                            gr = create_game_result_abandoned(id, name_a, name_b, e);
 
-                            // TODO: Handle these possible problems.
+
+                            // Note: It's necessary to handle an error here, as opposed to after the match statement
+                            // later. Don't delete this code, even though it's repeated.
                             pm_sender.send(Event::GameOver { result: gr }).await.unwrap_or_else(|error| {
                                 error!("Lost contact to the player manager: {}", error);
                                 return;
@@ -262,43 +321,25 @@ pub mod game_master {
                                 return;
                             });
                             continue;
+
                         }
                     };
                     match game_result {
                         GameResultType::PlayerAWins | GameResultType::PlayerBWins => {
 
-                            let winner_message = craft_game_end_proto(Comms::game_end::GameResult::WIN);
-                            let loser_message = craft_game_end_proto(Comms::game_end::GameResult::LOSS);
+                            let result = handle_player_winning_result(id, name_a, &mut stream_a,
+                                                         name_b, &mut stream_b,
+                                                         game_result).await;
 
-                            let results;
-                            warn!("GM: {} We have a winning scenario. Returning result.", id);
-                            if matches!(game_result, GameResultType::PlayerAWins) {
-                                results = join!(send_proto_to_client(&mut stream_a, &winner_message),
-                                send_proto_to_client(&mut stream_b, &loser_message));
-                                gr.winner = name_a;
-                                gr.loser = name_b;
-                                gr.status = GameStatus::Completed;
+                            match result {
+                                Ok(game_result) =>
+                                    {
+                                        gr = game_result;
+                                    },
+                                Err(e) => {
+                                    error!("Error: {}", e);
+                                }
                             }
-                            else {
-                                results = join!(send_proto_to_client(&mut stream_b, &winner_message),
-                                send_proto_to_client(&mut stream_a, &loser_message));
-                                gr.winner = name_b;
-                                gr.loser = name_a;
-                                gr.status = GameStatus::Completed;
-                            }
-
-
-                            results.0.unwrap_or_else(|_| {
-                                // @TODO: We clearly need a way to tell the player manager
-                                // in a better way that a player has disconnected.
-                                warn!("I lost player_a")
-                            });
-
-                            results.1.unwrap_or_else(|_| {
-                                // @TODO: We clearly need a way to tell the player manager
-                                // in a better way that a player has disconnected.
-                                warn!("I lost player_b")
-                            });
                         }
                         GameResultType::Draw => {
                            let draw_msg = craft_game_end_proto(Comms::game_end::GameResult::DRAW);
