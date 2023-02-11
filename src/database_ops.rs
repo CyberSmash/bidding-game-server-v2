@@ -69,11 +69,17 @@ pub mod database_ops {
         }
     }
 
-    pub async fn update_elos(db_connection: &mut PoolConnection<Sqlite>, winner: &String, loser: &String) -> Result<(), BidError> {
+    pub async fn update_elos(db_connection: &mut PoolConnection<Sqlite>, winner: &String, loser: &String, result: &GameResultType) -> Result<(u32, u32), BidError> {
         let winner_elo = get_player_elo_from_db(db_connection, &winner).await?;
         let loser_elo = get_player_elo_from_db(db_connection, &loser).await?;
+        let mut elos: (u32, u32);
+        if matches!(result, GameResultType::Draw) {
+            elos = calc_elo(winner_elo as u32, loser_elo as u32, GameResultType::Draw);
+        }
+        else {
+            elos = calc_elo(winner_elo as u32, loser_elo as u32, GameResultType::PlayerAWins);
+        }
 
-        let mut elos = calc_elo(winner_elo as u32, loser_elo as u32, GameResultType::PlayerAWins);
         info!("Start Elos: {} {} end elos: {} {}", winner_elo, loser_elo, elos.0, elos.1);
 
         elos.1 = std::cmp::max(elos.1, ELO_FLOOR);
@@ -82,7 +88,7 @@ pub mod database_ops {
         update_elo(db_connection, &winner, elos.0).await?;
         update_elo(db_connection, &loser, elos.1).await?;
 
-        Ok(())
+        Ok((elos.0, elos.1))
     }
 
 }

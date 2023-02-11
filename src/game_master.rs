@@ -1,7 +1,7 @@
 pub mod game_master {
     use std::thread;
     use std::time::Duration;
-    use futures::join;
+    use futures::{join, TryFutureExt};
     use async_std::net::{TcpStream};
     use async_std::prelude::*;
     use futures::channel::mpsc;
@@ -11,8 +11,11 @@ pub mod game_master {
     use crate::protos::Comms::server_request::MsgType;
     use futures::sink::SinkExt;
     use protobuf::{MessageField};
+    use sqlx::pool::PoolConnection;
+    use sqlx::Sqlite;
     use crate::error::BidError;
     use crate::{BOTTLE_MAX, BOTTLE_MIN, Event, GameResult, GameResultType, GameStatus, MAX_BID_ERRORS, MAX_GAME_ROUNDS};
+    use crate::database_ops::database_ops::{get_player_elo_from_db, update_elos};
     use crate::proto_utils::proto_utils::{make_round_start_proto, make_start_proto, read_proto_from_client, send_proto_to_client};
     use crate::protos::Comms::bid_result::RoundResultType;
     use crate::protos::Comms::ServerRequest;
@@ -20,13 +23,14 @@ pub mod game_master {
     type Sender<T> = mpsc::UnboundedSender<T>;
     type Receiver<T> = mpsc::UnboundedReceiver<T>;
 
-    pub fn craft_game_end_proto(result: Comms::game_end::GameResult) -> Comms::ServerRequest
+    pub fn craft_game_end_proto(result: Comms::game_end::GameResult, elo: u32) -> Comms::ServerRequest
     {
         let mut msg = Comms::ServerRequest::new();
         let mut game_end = Comms::GameEnd::new();
 
         msg.set_msgType(MsgType::GAME_END);
         game_end.set_result(result);
+        game_end.set_elo(elo);
         msg.gameEnd = MessageField::some(game_end);
 
         return msg;
@@ -231,30 +235,44 @@ pub mod game_master {
 
     pub async fn handle_player_winning_result(id: u32, name_a: String, stream_a: &mut TcpStream,
                                               name_b: String, stream_b: &mut TcpStream,
-                                              game_result: GameResultType) -> Result<GameResult, BidError> {
+                                              game_result: &GameResultType, db_connection: &mut PoolConnection<Sqlite>) -> Result<GameResult, BidError> {
         let mut gr = GameResult {
             id,
             winner: "".to_string(),
             loser: "".to_string(),
             status: GameStatus::Completed,
         };
-        let winner_message = craft_game_end_proto(Comms::game_end::GameResult::WIN);
-        let loser_message = craft_game_end_proto(Comms::game_end::GameResult::LOSS);
-
-        let results;
-        warn!("GM: {} We have a winning scenario. Returning result.", id);
+        let mut winner_stream: TcpStream;
+        let mut loser_stream: TcpStream;
         if matches!(game_result, GameResultType::PlayerAWins) {
-            results = join!(send_proto_to_client(stream_a, &winner_message),
-                                send_proto_to_client(stream_b, &loser_message));
+            winner_stream = stream_a.to_owned();
+            loser_stream = stream_b.to_owned();
             gr.winner = name_a;
             gr.loser = name_b;
+
         }
         else {
-            results = join!(send_proto_to_client(stream_b, &winner_message),
-                                send_proto_to_client(stream_a, &loser_message));
+            winner_stream = stream_b.to_owned();
+            loser_stream = stream_a.to_owned();
             gr.winner = name_b;
             gr.loser = name_a;
         }
+
+        let elos = update_elos(db_connection, &gr.winner, &gr.loser, game_result)
+            .await
+            .unwrap_or_else(|error| {
+                error!("Cannot update ELOs. Error: {}", error);
+                (0, 0)
+        });
+
+        let winner_message = craft_game_end_proto(Comms::game_end::GameResult::WIN, elos.0);
+        let loser_message = craft_game_end_proto(Comms::game_end::GameResult::LOSS, elos.1);
+
+        let results;
+        warn!("GM: {} We have a winning scenario. Returning result.", id);
+
+        results = join!(send_proto_to_client(&mut winner_stream, &winner_message),
+                                send_proto_to_client(&mut loser_stream, &loser_message));
 
 
         match results.0 {
@@ -278,11 +296,10 @@ pub mod game_master {
     }
 
 
-
-    pub async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Event>, id: u32)
+    pub async fn game_master(mut pm_sender: Sender<Event>, mut gm_receiver: Receiver<Event>,
+                             id: u32, mut database_connection: PoolConnection<Sqlite>)
     {
         let gm_backoff = Duration::from_millis(25);
-
 
         info!("Game Master: {} is alive!", id);
 
@@ -329,7 +346,7 @@ pub mod game_master {
 
                             let result = handle_player_winning_result(id, name_a, &mut stream_a,
                                                          name_b, &mut stream_b,
-                                                         game_result).await;
+                                                         &game_result, &mut database_connection).await;
 
                             match result {
                                 Ok(game_result) =>
@@ -342,10 +359,19 @@ pub mod game_master {
                             }
                         }
                         GameResultType::Draw => {
-                           let draw_msg = craft_game_end_proto(Comms::game_end::GameResult::DRAW);
-
-                            let results = join!(send_proto_to_client(&mut stream_a, &draw_msg),
-                            send_proto_to_client(&mut stream_b, &draw_msg)
+                            let elos = match update_elos(&mut database_connection, &name_a, &name_b, &game_result).await {
+                                Ok(elos_tuple) => elos_tuple,
+                                Err(e) => {
+                                    // If something has gone wrong with the database, set  these to
+                                    // zeros, and continue.
+                                    error!("Could not update player ELOs: {}", e);
+                                    (0, 0)
+                                }
+                            };
+                            let player_a_draw_msg = craft_game_end_proto(Comms::game_end::GameResult::DRAW, elos.0);
+                            let player_b_draw_msg = craft_game_end_proto(Comms::game_end::GameResult::DRAW, elos.1);
+                            let results = join!(send_proto_to_client(&mut stream_a, &player_a_draw_msg),
+                                                                         send_proto_to_client(&mut stream_b, &player_b_draw_msg)
                             );
                             if results.0.is_err() {
                                 warn!("Could not send proto to client A.");
@@ -358,6 +384,7 @@ pub mod game_master {
                             gr.status = GameStatus::Draw;
                         }
                     }
+
                     info!("GM {} the game is over and I'm returning the results.", id);
                     pm_sender.send(Event::GameOver { result: gr }).await.unwrap_or_else(|err| error!("Error sending to the player manager. {:?}", err));
                     thread::sleep(gm_backoff);

@@ -33,7 +33,6 @@ use crate::protos::Comms::server_request::MsgType;
 use log::{warn, info, trace, error};
 mod proto_utils;
 mod game_master;
-mod game_management;
 use proto_utils::proto_utils::*;
 use player_management::player_management::*;
 use crate::game_master::game_master::{game_master};
@@ -50,6 +49,10 @@ const BOTTLE_MIN: u32 = 0;
 const BOTTLE_MAX: u32 = 10;
 const MAX_BID_ERRORS: u32 = 3;
 const ELO_FLOOR: u32 = 100;
+
+
+const PROTO_VERSION_MAJOR: u32  = 0;
+const PROTO_VERSION_MINOR: u32  = 2;
 
 enum GameStatus {
     Completed,
@@ -245,7 +248,15 @@ async fn player_manager(sender: Sender<Event>, mut receiver: Receiver<Event>, da
     for id in 0..max_games {
         let (gm_sender, gm_receiver) : (Sender<Event>, Receiver<Event>) = mpsc::unbounded();
         game_comms.insert(id.clone(), gm_sender);
-        task::spawn(game_master(sender.clone(), gm_receiver, id));
+
+        let mut gm_db_conn = match database_pool.acquire().await {
+            Ok(c) => c,
+            Err(e) => {
+                println!("Could not acquire a connection to the database from the pool. {}", e);
+                break;
+            }
+        };
+        task::spawn(game_master(sender.clone(), gm_receiver, id, gm_db_conn));
     }
 
 
@@ -311,14 +322,14 @@ async fn player_manager(sender: Sender<Event>, mut receiver: Receiver<Event>, da
                                  result.winner,
                                  result.loser);
 
-                        update_elos(&mut db_connection, &result.winner, &result.loser).await.ok();
+                        //update_elos(&mut db_connection, &result.winner, &result.loser).await.ok();
                     }
                     GameStatus::Draw => {
                         // As these database queries are logged already, there's not much else to do but return the error and try
                         // to continue on as if nothing ever happened.
                         inc_draws(&mut db_connection, &result.winner).await.ok();
                         inc_draws(&mut db_connection, &result.loser).await.ok();
-                        update_elos(&mut db_connection, &result.winner, &result.loser).await.ok();
+                        //update_elos(&mut db_connection, &result.winner, &result.loser).await.ok();
                     }
                 }
                 if let Some(peer) = players.get_mut(&result.winner) {
@@ -364,6 +375,21 @@ async fn player_manager(sender: Sender<Event>, mut receiver: Receiver<Event>, da
 
 async fn connection_loop(mut stream: TcpStream, mut pm_sender: Sender<Event>, database_connection: SqlitePool) -> std::result::Result<(), BidError>
 {
+
+    let mut expected_version = Comms::ServerRequest::new();
+    expected_version.set_msgType(MsgType::VERSION);
+    expected_version.set_version_major(PROTO_VERSION_MAJOR);
+    expected_version.set_version_minor(PROTO_VERSION_MINOR);
+
+    match send_proto_to_client(&mut stream, &expected_version).await {
+        Err(e) => {
+
+            error!("Could not send version to client. {}", e);
+            return Err(BidError::ErrorOnSend);
+        }
+        Ok(_) => {}
+    };
+
     let mut auth_request = Comms::ServerRequest::new();
     auth_request.set_msgType(Comms::server_request::MsgType::AUTH_REQUEST);
 
