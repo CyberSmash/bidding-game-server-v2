@@ -7,7 +7,6 @@ pub mod game_master {
     use futures::channel::mpsc;
     use log::{error, info, trace, warn};
     use crate::protos::Comms;
-    //use crate::protos::ServerRequest;
     use crate::protos::Comms::server_request::MsgType;
     use futures::sink::SinkExt;
     use protobuf::{MessageField};

@@ -40,7 +40,6 @@ mod database_ops;
 use database_ops::database_ops::*;
 type Sender<T> = mpsc::UnboundedSender<T>;
 type Receiver<T> = mpsc::UnboundedReceiver<T>;
-//type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 
 const SOCKET_READ_TIMEOUT: Duration = Duration::from_millis(500);
